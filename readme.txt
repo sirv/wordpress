@@ -235,6 +235,9 @@ The official [Sirv Help Center](https://sirv.com/help/) is full of easy advice, 
 
 == Changelog ==
 
+== 7.1.2 ==
+* Added option to show/hide Sirv product image block.
+
 == 7.1.1 ==
 * Plugin tested with the latest WordPress version - 6.3.1.
 * Added ability to show Sirv variation image in WooCommerce cart and order confirmation emails.

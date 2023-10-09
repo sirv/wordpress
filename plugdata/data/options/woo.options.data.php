@@ -834,6 +834,42 @@ $cat_options = array(
 );
 
 
+$admin_layout_options = array(
+  'SIRV_WOO_SHOW_MAIN_IMAGE' => array(
+    'enabled_option' => true,
+    'option_name' => 'SIRV_WOO_SHOW_MAIN_IMAGE',
+    'label' => 'Sirv product image block',
+    'below_text' => 'Block shown in right column of WooCommerce product admin, to set a Sirv image as the Featured image.',
+    'type' => 'radio',
+    'is_new_line' => true,
+    'func' => 'render_radio_option',
+    'value' => '',
+    'values' => array(
+      array(
+        'label' => 'Show',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'show',
+        ),
+      ),
+      array(
+        'label' => 'Hide',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'hide',
+        ),
+      ),
+    ),
+    'default' => 'show',
+    'default_type' => 'str',
+    'show_status' => false,
+    'enabled_value' => 'show',
+  ),
+);
+
+
 $options = array(
   "SMV" => array(
     "title" => 'Sirv Media Viewer for WooCommerce',
@@ -866,6 +902,12 @@ Upload files at <a href="https://my.sirv.com/" target="_blank">my.sirv.com</a> o
     "description" => 'Go to the <a href="https://sirv.com/help/viewer/" target="_blank">Sirv Media Viewer designer</a> to create the perfect experience for your store. ',
     "id" => 'woo-design',
     "options" => $design_options
+  ),
+  "ADMIN_LAYOUT" => array(
+    "title" => 'Admin layout',
+    "description" => 'Choose which Sirv blocks to show in WordPress admin.',
+    "id" => 'woo-admin-layout',
+    "options" => $admin_layout_options
   ),
 );
 

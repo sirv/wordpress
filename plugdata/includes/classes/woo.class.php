@@ -154,7 +154,7 @@ class Woo
 
   public function add_sirv_product_image_metabox()
   {
-    if (get_post_type() === 'product') {
+    if (get_post_type() === 'product' && get_option('SIRV_WOO_SHOW_MAIN_IMAGE') == 'show') {
       $this->add_admin_edit_scripts();
       add_meta_box(
         'woo-sirv-product-image',
