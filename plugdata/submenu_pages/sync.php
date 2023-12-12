@@ -257,7 +257,7 @@ $storageInfo = sirv_getStorageInfo();
       <tr>
         <th></th>
         <td colspan="2">
-          <div class="sirv-crop-row">
+          <div class="sirv-crop-row sirv-check-all-thumbs">
             <span class="sirv-crop-row__title">Thumbnail</span>
             <div style="min-width: 150px; margin-right: 10px;">
               <label>
@@ -266,28 +266,30 @@ $storageInfo = sirv_getStorageInfo();
               </label>
             </div>
           </div>
-          <div class="sirv-thumbs-sizes">
-            <?php
-            $prevented_sizes = json_decode(get_option('SIRV_PREVENTED_SIZES'), true);
-            //$critical_sizes = ['medium', 'thumbnail'];
-            $critical_sizes = [];
-            //$critical_msg = "Strongly do not recomended delete this size as it is using in admin area";
+          <div class="sirv-scrollbox-parent">
+            <div class="sirv-thumbs-sizes sirv-scrollbox">
+              <?php
+                $prevented_sizes = json_decode(get_option('SIRV_PREVENTED_SIZES'), true);
+                //$critical_sizes = ['medium', 'thumbnail'];
+                $critical_sizes = [];
+                //$critical_msg = "Strongly do not recomended delete this size as it is using in admin area";
 
-            foreach ($wp_sizes as $size_name => $size) {
-              $msg = in_array($size_name, $critical_sizes) ? ' (<span style="display: initial;color: red;">' . $critical_msg . '</span>)' : '';
-              $is_prevent_size = isset($prevented_sizes[$size_name]) ? 'delete' : 'keep';
+                foreach ($wp_sizes as $size_name => $size) {
+                  $msg = in_array($size_name, $critical_sizes) ? ' (<span style="display: initial;color: red;">' . $critical_msg . '</span>)' : '';
+                  $is_prevent_size = isset($prevented_sizes[$size_name]) ? 'delete' : 'keep';
 
-              $size_str = $size_name . $msg .  "<span>" . $size['width'] . "x" . $size['height'] . "</span>";
-            ?>
-              <div class="sirv-crop-row">
-                <span class="sirv-crop-row__title"><?php echo $size_str; ?></span>
-                <div class="sirv-crop-row__checkboxes">
-                  <input type="radio" class="sirv-thumb-size" data-size="<?php echo $size['width'] . "x" . $size['height']; ?>" data-name="<?php echo $size_name; ?>" name="<?php echo $size_name; ?>_prevent" id="<?php echo $size_name; ?>_prevent_1" value="delete" <?php checked('delete', $is_prevent_size, true); ?>><label class="fchild" for="<?php echo $size_name; ?>_prevent_1">Delete</label>
-                  <input type="radio" class="sirv-thumb-size" data-size="<?php echo $size['width'] . "x" . $size['height']; ?>" data-name="<?php echo $size_name; ?>" name="<?php echo $size_name; ?>_prevent" id="<?php echo $size_name; ?>_prevent_2" value="keep" <?php checked('keep', $is_prevent_size, true); ?>><label for="<?php echo $size_name; ?>_prevent_2">Create</label>
+                  $size_str = $size_name . $msg .  "<span>" . $size['width'] . "x" . $size['height'] . "</span>";
+              ?>
+                <div class="sirv-crop-row">
+                  <span class="sirv-crop-row__title"><?php echo $size_str; ?></span>
+                  <div class="sirv-crop-row__checkboxes">
+                    <input type="radio" class="sirv-thumb-size" data-size="<?php echo $size['width'] . "x" . $size['height']; ?>" data-name="<?php echo $size_name; ?>" name="<?php echo $size_name; ?>_prevent" id="<?php echo $size_name; ?>_prevent_1" value="delete" <?php checked('delete', $is_prevent_size, true); ?>><label class="fchild" for="<?php echo $size_name; ?>_prevent_1">Delete</label>
+                    <input type="radio" class="sirv-thumb-size" data-size="<?php echo $size['width'] . "x" . $size['height']; ?>" data-name="<?php echo $size_name; ?>" name="<?php echo $size_name; ?>_prevent" id="<?php echo $size_name; ?>_prevent_2" value="keep" <?php checked('keep', $is_prevent_size, true); ?>><label for="<?php echo $size_name; ?>_prevent_2">Create</label>
+                  </div>
                 </div>
-              </div>
-            <?php } ?>
-            <input type="hidden" id="sirv-prevented-sizes-hidden" name="SIRV_PREVENTED_SIZES" value="<?php echo htmlspecialchars(json_encode($prevented_sizes, JSON_FORCE_OBJECT)); ?>">
+              <?php } ?>
+              <input type="hidden" id="sirv-prevented-sizes-hidden" name="SIRV_PREVENTED_SIZES" value="<?php echo htmlspecialchars(json_encode($prevented_sizes, JSON_FORCE_OBJECT)); ?>">
+            </div>
           </div>
         </td>
       </tr>
@@ -442,7 +444,7 @@ if (!empty($images_info['skip_data'])) {
                   <label>Scanned theme/folder</label>
                 </th>
                 <td>
-                  <span class="sirv-css-sync-data-theme"><?php echo $css_sync_data['theme']; ?></span>
+                  <textarea disabled class="sirv-css-sync-data-theme" value="<?php echo htmlspecialchars($css_sync_data['theme']); ?>"><?php echo $css_sync_data['theme']; ?></textarea>
                 </td>
               </tr>
               <tr>
@@ -479,7 +481,8 @@ if (!empty($images_info['skip_data'])) {
                         - Inaccessible<br>
                         - Link couldn't be followed</span>
                     </div>
-                    <a <?php //echo $hide_skip_data_block; ?> class="sirv-hide-show-a sirv-show-skip-data-list" data-status="false" data-selector=".sirv-skip-images-list" data-show-msg="Show list" data-hide-msg="Hide list" data-icon-show="dashicons dashicons-arrow-right-alt2" data-icon-hide="dashicons dashicons-arrow-down-alt2">
+                    <a <?php //echo $hide_skip_data_block;
+                        ?> class="sirv-hide-show-a sirv-show-skip-data-list" data-status="false" data-selector=".sirv-skip-images-list" data-show-msg="Show list" data-hide-msg="Hide list" data-icon-show="dashicons dashicons-arrow-right-alt2" data-icon-hide="dashicons dashicons-arrow-down-alt2">
                       <span class="dashicons dashicons-arrow-right-alt2"></span>
                       Show list
                     </a>
@@ -502,72 +505,6 @@ if (!empty($images_info['skip_data'])) {
             <textarea class="sirv-font-monospace" name="SIRV_CSS_BACKGROUND_IMAGES" rows="10" value="<?php echo htmlspecialchars(get_option('SIRV_CSS_BACKGROUND_IMAGES')); ?>"><?php echo get_option('SIRV_CSS_BACKGROUND_IMAGES'); ?></textarea>
             <input type="submit" name="submit" class="sirv-save-css-code button-primary sirv-save-settings" value="<?php _e('Save CSS code') ?>" disabled />
           </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-<div class="sirv-optiontable-holder sirv-sync-exclude-images-wrapper">
-  <table class="optiontable form-table">
-    <tbody>
-      <tr>
-        <td colspan="2">
-          <h3>Exclude images from Sirv</h3>
-          <p class="sirv-options-desc">If there are images you don't want Sirv to serve, list them below. They could be specific images or entire pages.</p>
-        </td>
-      </tr>
-      <tr>
-        <th>
-          <label>Exclude files/folders</label>
-        </th>
-        <td>
-          <span>Files that should not served by Sirv:</span>
-          <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_FILES" value="<?php echo get_option('SIRV_EXCLUDE_FILES'); ?>" rows="5" placeholder="e.g.
-/wp-content/plugins/a-plugin/*.png
-/wp-content/uploads/2021/04/an-image.jpg"><?php echo get_option('SIRV_EXCLUDE_FILES'); ?></textarea>
-          <span class="sirv-option-responsive-text">
-            You can enter full URLs and the domain will be stripped.<br>
-            Use * to specify all files at a certain path.
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <th>
-          <label>Exclude pages</label>
-        </th>
-        <td>
-          <span>Web pages that should not have files served by Sirv:</span>
-          <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_PAGES" value="<?php echo get_option('SIRV_EXCLUDE_PAGES'); ?>" rows="5" placeholder="e.g.
-/example/particular-page.html
-/a-whole-section/*"><?php echo get_option('SIRV_EXCLUDE_PAGES'); ?></textarea>
-          <span class="sirv-option-responsive-text">
-            You can enter full URLs and the domain will be stripped.<br>
-            Use * to specify all pages at a certain path.
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <th>
-          <label>Exclude lazy/scaled images</label>
-        </th>
-        <td>
-          <span>Disable lazy loading & responsive scaling on specific images, such as your website logo:</span>
-          <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_RESPONSIVE_FILES" value="<?php echo get_option('SIRV_EXCLUDE_RESPONSIVE_FILES'); ?>" rows="5" placeholder="e.g.
-/wp-content/uploads/2021/04/Logo.jpg
-/wp-content/plugins/a-plugin/*.png
-ExampleClass
-ExampleAltTag
-ExampleID"><?php echo get_option('SIRV_EXCLUDE_RESPONSIVE_FILES'); ?></textarea>
-          <span class="sirv-option-responsive-text">
-            Enter full URLs or use * to apply on all files with a certain path/name.
-            You can also exclude images via their img alt, class or data attribute. <a href="https://sirv.com/help/articles/using-sirv-wordpress/#disable-lazy-loading-and-responsive-scaling">Learn more</a>.
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <th></th>
-        <td>
-          <input type="submit" name="submit" class="button-primary sirv-save-settings" value="<?php _e('Save settings') ?>" />
         </td>
       </tr>
     </tbody>

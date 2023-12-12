@@ -467,15 +467,24 @@ jQuery(function ($) {
 
             $.ajax({
                 url: ajaxurl,
-                data: { action: 'sirv_disconnect'},
+                data: {
+                    action: 'sirv_disconnect',
+                    'options_nonce': sirv_options_data.ajaxnonce,
+                },
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function(){
+                    hideMessage("sirv-init-account", removeAll = true);
                     $('.sirv-connect-account-wrapper').addClass('sirv-loading');
+
                 },
             }).done(function (res){
                 //debug
                 //console.log(res);
+
+                if(!!res.error){
+                    showMessage('.sirv-error', res.error, 'sirv-init-account');
+                }
 
                 $('.sirv-connect-account-wrapper').removeClass('sirv-loading');
 
@@ -486,6 +495,7 @@ jQuery(function ($) {
             }).fail(function(jqXHR, status, error){
                 $('.sirv-connect-account-wrapper').removeClass('sirv-loading');
                 console.log("Error during ajax request: " + error);
+                showMessage(".sirv-error", error, "sirv-init-account");
             });
         }
 

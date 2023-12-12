@@ -370,3 +370,68 @@ var SirvOptions = {
     </table>
   </div>
 </div>
+<div class="sirv-exclude-wrapper">
+  <h2>Exclude images from Sirv</h2>
+  <p class="sirv-options-desc">If there are images you don't want Sirv to serve, list them below. They could be specific images or entire pages.</p>
+
+  <div class="sirv-optiontable-holder sirv-sync-exclude-images-wrapper">
+    <table class="optiontable form-table">
+      <tbody>
+        <tr>
+          <th>
+            <label>Exclude files/folders</label>
+          </th>
+          <td>
+            <span>Files that should not served by Sirv:</span>
+            <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_FILES" value="<?php echo get_option('SIRV_EXCLUDE_FILES'); ?>" rows="5" placeholder="e.g.
+  /wp-content/plugins/a-plugin/*.png
+  /wp-content/uploads/2021/04/an-image.jpg"><?php echo get_option('SIRV_EXCLUDE_FILES'); ?></textarea>
+            <span class="sirv-option-responsive-text">
+              You can enter full URLs and the domain will be stripped.<br>
+              Use * to specify all files at a certain path.
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <th>
+            <label>Exclude pages</label>
+          </th>
+          <td>
+            <span>Web pages that should not have files served by Sirv:</span>
+            <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_PAGES" value="<?php echo get_option('SIRV_EXCLUDE_PAGES'); ?>" rows="5" placeholder="e.g.
+  /example/particular-page.html
+  /a-whole-section/*"><?php echo get_option('SIRV_EXCLUDE_PAGES'); ?></textarea>
+            <span class="sirv-option-responsive-text">
+              You can enter full URLs and the domain will be stripped.<br>
+              Use * to specify all pages at a certain path.
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <th>
+            <label>Exclude lazy/scaled images</label>
+          </th>
+          <td>
+            <span>Disable lazy loading & responsive scaling on specific images, such as your website logo:</span>
+            <textarea class="sirv-font-monospace" name="SIRV_EXCLUDE_RESPONSIVE_FILES" value="<?php echo get_option('SIRV_EXCLUDE_RESPONSIVE_FILES'); ?>" rows="5" placeholder="e.g.
+  /wp-content/uploads/2021/04/Logo.jpg
+  /wp-content/plugins/a-plugin/*.png
+  ExampleClass
+  ExampleAltTag
+  ExampleID"><?php echo get_option('SIRV_EXCLUDE_RESPONSIVE_FILES'); ?></textarea>
+            <span class="sirv-option-responsive-text">
+              Enter full URLs or use * to apply on all files with a certain path/name.
+              You can also exclude images via their img alt, class or data attribute. <a href="https://sirv.com/help/articles/using-sirv-wordpress/#disable-lazy-loading-and-responsive-scaling">Learn more</a>.
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <th></th>
+          <td>
+            <input type="submit" name="submit" class="button-primary sirv-save-settings" value="<?php _e('Save settings') ?>" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

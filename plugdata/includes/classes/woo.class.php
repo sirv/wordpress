@@ -138,7 +138,7 @@ class Woo
 
   public function add_sirv_gallery_metabox()
   {
-    if (get_post_type() === 'product') {
+    if (get_post_type() === 'product' && get_option('SIRV_WOO_SHOW_SIRV_GALLERY') == 'show') {
       $this->add_admin_edit_scripts();
       add_meta_box(
         'woo-sirv-gallery',
@@ -1370,7 +1370,7 @@ class Woo
     $isCaption = false;
 
     $mv_custom_options = $this->remove_script_tag(get_option('SIRV_WOO_MV_CUSTOM_OPTIONS'));
-    $mv_custom_options_block = !empty($mv_custom_options) ? '<script>' . $mv_custom_options . '</script>' . PHP_EOL : '';
+    $mv_custom_options_block = !empty($mv_custom_options) ? '<script nowprocket>' . $mv_custom_options . '</script>' . PHP_EOL : '';
 
     $mv_custom_css = get_option('SIRV_WOO_MV_CUSTOM_CSS');
     $mv_custom_css = !empty($mv_custom_css) ? '<style>' . $mv_custom_css . '</style>' . PHP_EOL : '';

@@ -160,17 +160,25 @@ class SirvAPIClient
 
         $res = $this->sendRequest('v2/files/search', $data, 'POST');
 
-        if ($res && $res->http_code == 200){
+        if ($res){
             $this->connected = true;
 
-            if($res->result->total > $from + 50){
-                $res->result->isContinuation = true;
-                $res->result->from = $from + 50;
-            }else{
-                $res->result->isContinuation = false;
+            if($res->http_code == 200){
+                if ($res->result->total > $from + 50) {
+                    $res->result->isContinuation = true;
+                    $res->result->from = $from + 50;
+                } else {
+                    $res->result->isContinuation = false;
+                }
+            }
+
+            if ($res->http_code == 400) {
+                //some code here
+                $res->result->total = 0;
             }
 
             return $res->result;
+
         } else {
             $this->connected = false;
             $this->nullToken();
@@ -839,6 +847,8 @@ class SirvAPIClient
                 $storageInfo['limits'][$type]['type'] = $type;
             }
             //$storageInfo['limits'] = array_chunk($storageInfo['limits'], (int) count($storageInfo['limits']) / 2);
+        }else{
+            $storageInfo['limits'] = array();
         }
 
         return $storageInfo;

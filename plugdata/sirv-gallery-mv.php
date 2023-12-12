@@ -249,7 +249,7 @@ class Sirv_Gallery_MV
 
         $global_shortcode_smv_options = get_option("SIRV_CUSTOM_SMV_SH_OPTIONS");
 
-        return "<script>$global_shortcode_smv_options</script>" . PHP_EOL;
+        return "<script nowprocket>$global_shortcode_smv_options</script>" . PHP_EOL;
     }
 
 

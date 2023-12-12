@@ -659,8 +659,10 @@ jQuery(function($){
 
 
         function renderSearch(data){
+            const emptyResult = "No files matching your criteria";
+
             if(data.total > 0){
-                $('.sirv-zero-items').hide();
+                $('.sirv-search-message').hide();
                 $('.sirv-search-title').show();
                 let documentFragment = $(document.createDocumentFragment());
                 $('.sirv-search-total-found').html(data.total);
@@ -675,10 +677,23 @@ jQuery(function($){
 
                 $('#search-items').append(documentFragment);
             }else{
-                //empty results
-                $('.sirv-search-title').hide();
-                $('.sirv-zero-items').show();
+                if(!!data.error){
+                    showSearchMsg(`Error: ${data.message}`);
+                }else{
+                    //empty results
+                    $('.sirv-search-title').hide();
+                    //$('.sirv-search-message').show();
+                    showSearchMsg(emptyResult);
+                }
             }
+        }
+
+
+        function showSearchMsg(msg){
+            const $searchItem = $('.sirv-search-message');
+
+            $searchItem.html(msg);
+            $searchItem.show();
         }
 
 
@@ -721,7 +736,7 @@ jQuery(function($){
 
             let sirvItem = $(
                 '<div class="sirv-item">' +
-                    '<div class="sirv-item-body" '+ title_path +' data-id="'+ md5('//'+ data.imageUrl) +'"data-type="'+ data.type +'" data-dir-link="'+ data.filename +'" data-dir="'+ dir +'" data-content-type="'+ data.contentType +'">' +
+                    '<div class="sirv-item-body" '+ title_path +' data-id="'+ md5('//'+ data.imageUrl) +'"data-type="'+ data.type +'" data-dir-link="'+ encodeURIComponent(data.filename) +'" data-dir="'+ dir +'" data-content-type="'+ data.contentType +'">' +
                         selectionButton + menuButton +
                         '<div class="sirv-item-icon" style="'+ bcImg +'" data-original="'+ data.fullImageUrl +'"></div>' +
                         '<div class="sirv-item-desc">' +
@@ -967,7 +982,7 @@ jQuery(function($){
                     if(i+1 == dirs.length){
                         $('<li><span>' + dirs[i] + '</span></li>').appendTo('.breadcrumb');
                     }else{
-                        $('<li><a href="#" class="sirv-breadcramb-link" data-dir-link="' + temp_dir + '">' + dirs[i] + '</a></li>').appendTo('.breadcrumb');
+                        $('<li><a href="#" class="sirv-breadcramb-link" data-dir-link="' + encodeURIComponent(temp_dir) + '">' + dirs[i] + '</a></li>').appendTo('.breadcrumb');
                     }
 
                 }
@@ -1038,32 +1053,33 @@ jQuery(function($){
                 dataType: 'json',
             }
             //sendAjaxRequest(AjaxData, processingOverlay=false, showingArea=false, isDebug=false, doneFn=false, beforeSendFn=false, errorFn=false)
-            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false, function (data) {
-                if(data){
-                    $('.sirv-search-for').text("Results for '" + query + "'" + queryMsg + dirMsg);
-                    if (from == 0) if ($('.sirv-items-container').scrollTop() > 0) $('.sirv-items-container').scrollTop(0);
-                    if(data.isContinuation){
-                        $('.sirv-items-container').on('scroll', searchLoadOnScroll);
-                        searchFrom = data.from;
-                    }else{
-                        $('.sirv-items-container').off('scroll', searchLoadOnScroll);
-                        searchFrom = 0;
-                    }
+            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = true,
+                doneFn = function (data) {
+                    if(data){
+                        $('.sirv-search-for').text("Results for '" + query + "'" + queryMsg + dirMsg);
+                        if (from == 0) if ($('.sirv-items-container').scrollTop() > 0) $('.sirv-items-container').scrollTop(0);
+                        if(data.isContinuation){
+                            $('.sirv-items-container').on('scroll', searchLoadOnScroll);
+                            searchFrom = data.from;
+                        }else{
+                            $('.sirv-items-container').off('scroll', searchLoadOnScroll);
+                            searchFrom = 0;
+                        }
 
-                    //console.log(data);
-                    unbindEvents();
-                    showSearchResults(true, continuosSearch);
-                    renderSearch(data);
-                    restoreSelections(false);
-                    bindEvents();
-                    patchMediaBar();
+                        //console.log(data);
+                        unbindEvents();
+                        showSearchResults(true, continuosSearch);
+                        renderSearch(data);
+                        restoreSelections(false);
+                        bindEvents();
+                        patchMediaBar();
+                    }
+                },
+                beforeSendFn = function(){
+                    $('.breadcrumb').hide();
+                    $('.sirv-search-for').show();
+                    $('.sirv-search-for').text("Searching for '" + query + "'" + queryMsg + dirMsg);
                 }
-            },
-            function(){
-                $('.breadcrumb').hide();
-                $('.sirv-search-for').show();
-                $('.sirv-search-for').text("Searching for '" + query + "'" + queryMsg + dirMsg);
-            }
             );
         }
 
@@ -1896,8 +1912,10 @@ jQuery(function($){
 
 
         function uploadImageByChunk(fileItem, start, reader, partNum, totalOverSizedFiles, currentDir){
+            const errorLimitPattern = new RegExp(/bytes exceeds the limit of/im);
+
             let file = fileItem.fileObject;
-            let maxSliceSize = 3 * 1024 * 1024;
+            let maxSliceSize = 2 * 1024 * 1024;
             let sliceSize = getSliceSize(maxFileSize, maxSliceSize);
             let nextSlice = start + sliceSize + 1;
             let blob = file.slice(start, nextSlice);
@@ -1920,7 +1938,6 @@ jQuery(function($){
 
                 const requestContentLenght = getContentLength(data);
 
-
                 let ajaxData = {
                                 url: sirv_ajax_object.ajaxurl,
                                 type: 'POST',
@@ -1931,19 +1948,24 @@ jQuery(function($){
 
                 sendAjaxRequest(ajaxData, processingOverlay=false, showingArea=false, isdebug=false,
                     doneFn=function(response){
-                        if ( nextSlice < file.size ) {
-                            uploadImageByChunk(fileItem, nextSlice, reader, partNum + 1, totalOverSizedFiles, currentDir);
-                        }
 
-                        if(response){
-                            try {
-                                let json_obj = JSON.parse(response);
-                                if(json_obj.hasOwnProperty('stop') && json_obj.stop == true){
-                                    $('.sirv-upload-ajax').hide();
-                                    getContentFromSirv(window.sirvGetPath);
-                                    realRequestSize = 0;
-                                }
-                            } catch(e) {
+                        if(!isJsonString(response)){
+                            if (errorLimitPattern.test(response)) {
+                                realRequestSize = realRequestSize == 0 ? requestContentLenght : realRequestSize;
+                                uploadImageByChunk(fileItem, 0, reader, 1, totalOverSizedFiles, currentDir);
+                            }else{
+                                realRequestSize = 0;
+                                $(".sirv-upload-ajax").hide();
+
+                                console.error("Error during ajax request: " + response);
+                            }
+                        }else{
+                            if ( nextSlice < file.size ) {
+                                uploadImageByChunk(fileItem, nextSlice, reader, partNum + 1, totalOverSizedFiles, currentDir);
+                            }
+
+                            let json_obj = JSON.parse(response);
+                            if(json_obj.hasOwnProperty('stop') && json_obj.stop == true){
                                 $('.sirv-upload-ajax').hide();
                                 getContentFromSirv(window.sirvGetPath);
                                 realRequestSize = 0;
@@ -1953,8 +1975,7 @@ jQuery(function($){
                     beforeSendFunc=false,
                     errorFn = function(jqXHR, status, error){
                         //console.log(jqXHR);
-                        const pattern = new RegExp(/bytes exceeds the limit of/i);
-                        if(jqXHR.status == 400 && pattern.test(jqXHR.responseText)){
+                        if(jqXHR.status == 400 && errorLimitPattern.test(jqXHR.responseText)){
                             realRequestSize = realRequestSize == 0 ? requestContentLenght : realRequestSize;
                             uploadImageByChunk(fileItem, 0, reader, 1, totalOverSizedFiles, currentDir);
                         }else{
@@ -1986,6 +2007,16 @@ jQuery(function($){
             sliceSize -= 2 * 1024;
 
             return sliceSize;
+        }
+
+
+        function isJsonString(str) {
+            try {
+                JSON.parse(str);
+            } catch (e) {
+                return false;
+            }
+            return true;
         }
 
 

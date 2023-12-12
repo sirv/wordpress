@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.1.2
+ * Version:           7.1.3
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -21,7 +21,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 ini_set("error_log", "/tmp/php-error.log");
 error_log( "Hello, errors!" );*/
 
-define('SIRV_PLUGIN_VERSION', '7.1.2');
+define('SIRV_PLUGIN_VERSION', '7.1.3');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 //define('SIRV_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -67,6 +67,7 @@ global $profiles;
 global $logger;
 global $sirv_ob_lvl;
 global $sirv_is_rest_rejected;
+global $overheadLimit;
 
 $logger = new SirvLogger(SIRV_PLUGIN_PATH, ABSPATH);
 $s3client = false;
@@ -82,6 +83,7 @@ $base_prefix = sirv_get_base_prefix();
 $isAjax = false;
 $sirv_ob_lvl = -1;
 $sirv_is_rest_rejected = false;
+$overheadLimit = 5000;
 
 
 //add_action( 'wp_head', 'get_enqueued_scripts', 1000 );
@@ -132,8 +134,10 @@ function sirv_wc_init(){
   global $sirv_woo_is_enable;
   global $sirv_woo_cat_is_enable;
 
-  add_action('woocommerce_product_after_variable_attributes', array('Woo', 'render_variation_gallery'), 10, 3);
-  add_action('woocommerce_save_product_variation', array('Woo', 'save_sirv_variation_data'), 10, 2);
+  if(get_option('SIRV_WOO_SHOW_SIRV_GALLERY') == 'show'){
+    add_action('woocommerce_product_after_variable_attributes', array('Woo', 'render_variation_gallery'), 10, 3);
+    add_action('woocommerce_save_product_variation', array('Woo', 'save_sirv_variation_data'), 10, 2);
+  }
 
   if ( $sirv_woo_is_enable ) {
     //remove filter that conflict with sirv
@@ -1235,8 +1239,16 @@ function sirv_plugin_settings_link($links){
 //add button Sirv Media near Add Media
 add_action('media_buttons', 'sirv_button', 11);
 
-function sirv_button($editor_id = 'content')
-{
+function sirv_button($editor_id = 'content'){
+
+  if( !is_admin() ) return;
+
+  global $post;
+
+  $post_type = isset($post) && isset($post->post_type) ? $post->post_type : 'post';
+
+  if(  $post_type == 'product' && get_option('SIRV_WOO_SHOW_ADD_MEDIA_BUTTON') == 'hide' ) return;
+
   wp_enqueue_style('fontAwesome', "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css", array());
   wp_register_style('sirv_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv.css');
   wp_enqueue_style('sirv_style');
@@ -1357,12 +1369,20 @@ function sirv_admin_scripts(){
     wp_enqueue_style('sirv_options_style');
     wp_enqueue_script('sirv_scrollspy', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/scrollspy.js', array('jquery'), '1.0.0');
     wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable'), false, true);
+    wp_localize_script('sirv_options', 'sirv_options_data', array(
+      'ajaxurl' => admin_url('admin-ajax.php'),
+      'ajaxnonce' => wp_create_nonce('ajax_validation_nonce'),
+    ));
   }
 
   if ( isset($_GET['page']) && ( $_GET['page'] == $feedback_page || $_GET['page'] == $account_page) ) {
     wp_register_style('sirv_options_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-options.css');
     wp_enqueue_style('sirv_options_style');
     wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable'), false, true);
+    wp_localize_script('sirv_options', 'sirv_options_data', array(
+      'ajaxurl' => admin_url('admin-ajax.php'),
+      'ajaxnonce' => wp_create_nonce('ajax_validation_nonce'),
+    ));
   }
 
   if (isset($_GET['page']) && $_GET['page'] == SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'shortcodes-view.php') {
@@ -1824,7 +1844,6 @@ function sirv_rest_request_before_callbacks($response, $handler, $request){
 }
 
 
-
 add_action('init', 'sirv_init', 20);
 function sirv_init(){
   global $isAdmin;
@@ -1845,11 +1864,8 @@ function sirv_init(){
 
 
   if (get_option('SIRV_ENABLE_CDN') === '1' && $isLoggedInAccount && !$isExclude) {
-
-    $GLOBALS['sirv_wp_additional_image_sizes'] = isset($GLOBALS['_wp_additional_image_sizes']) ? $GLOBALS['_wp_additional_image_sizes'] : array();
-
     add_filter('wp_get_attachment_image_src', 'sirv_wp_get_attachment_image_src', 10000, 4);
-    add_filter('image_downsize', "sirv_image_downsize", 10000, 3);
+    //add_filter('image_downsize', "sirv_image_downsize", 10000, 3);
     add_filter('wp_get_attachment_url', 'sirv_wp_get_attachment_url', 10000, 2);
     add_filter('wp_calculate_image_srcset', 'sirv_add_custom_image_srcset', 10, 5);
     add_filter('vc_wpb_getimagesize', 'sirv_vc_wpb_filter', 10000, 3);
@@ -2439,7 +2455,9 @@ function sirv_wp_get_attachment_image_src($image, $attachment_id, $size, $icon){
 
   $cdn_image_url = sirv_cache_sync_data($attachment_id, false);
   if (!empty($cdn_image_url)) {
-    $image[0] = sirv_scale_image($cdn_image_url, $image_width, $image_height, $size, $paths['img_file_path'], $isCrop);
+    $wp_sizes = sirv_get_image_sizes();
+
+    $image[0] = sirv_scale_image($cdn_image_url, $image_width, $image_height, $size, $wp_sizes, $paths['img_file_path'], $isCrop);
   }
 
   return $image;
@@ -2586,6 +2604,10 @@ function sirv_calculate_image_sizes($sizes, $size, $image_src, $image_meta, $att
 function sirv_add_custom_image_srcset($sources, $size_array, $image_src, $image_meta, $attachment_id){
   global $isAjax;
 
+  /*
+    function that get masterImageSize from $image_meta, if can't get then return null
+  */
+
   if( (is_admin() && !$isAjax) || !is_array($sources) || empty($attachment_id) || !sirv_is_allowed_ext($image_src) ) return $sources;
 
   if (sirv_is_sirv_item($image_src)) {
@@ -2611,14 +2633,22 @@ function sirv_add_custom_image_srcset($sources, $size_array, $image_src, $image_
   $isExclude = isset($image_src) ? Exclude::excludeSirvContent($image_src, 'SIRV_EXCLUDE_FILES') : false;
   if ( $isExclude ) return $sources;
 
-  $regexp_size_pattern = '/^[^\s]*?\-([0-9]{1,})(?:x|&#215;)([0-9]{1,})\.(jpg|jpeg|png|gif|webp|svg)/i';
   $paths = sirv_get_cached_wp_img_file_path($attachment_id);
 
   if (empty($paths) || isset($paths['wrong_file'])) return $sources;
 
   $image = sirv_cache_sync_data($attachment_id);
 
-  if ($image) {
+  if ( $image ) {
+
+    $wp_sizes = sirv_get_image_sizes();
+
+    $image_exts = sirv_get_file_extensions('image');
+    $image_exts_str = implode("|", $image_exts);
+
+    $regexp_size_pattern = '/^[^\s]*?\-([0-9]{1,})(?:x|&#215;)([0-9]{1,})\.(' . $image_exts_str . ')/i';
+
+    $master_image_size = ( isset($image_meta['sizes']) && !empty($image_meta['sizes']) ) ? sirv_get_master_image_size($image_meta["sizes"], $size_array, $wp_sizes) : null;
 
     $original_image_path = $paths['img_file_path'];
     $image_sizes = array_keys($sources);
@@ -2655,10 +2685,44 @@ function sirv_add_custom_image_srcset($sources, $size_array, $image_src, $image_
         }
       }
 
-      $sources[$size]['url'] = sirv_scale_image($image, $image_width, $image_height, $size_name, $original_image_path, true);
+      $sources[$size]['url'] = sirv_scale_image($image, $image_width, $image_height, $size_name, $wp_sizes, $original_image_path, true, $master_image_size);
     }
   }
   return $sources;
+}
+
+//find first equal size. Can be an issue when few sizes have the same height and width
+function sirv_get_master_image_size($meta_sizes, $size_array, $wp_sizes){
+  $master_image_size = null;
+
+  $master_image_size = sirv_find_size_name_size_array($meta_sizes, $size_array);
+
+  if( !is_null($master_image_size) ){
+    $size_names = array_keys($wp_sizes);
+    if( !in_array($master_image_size, $size_names) ){
+      $master_image_size = sirv_find_size_name_size_array($wp_sizes, $size_array);
+    }
+  }
+
+  return $master_image_size;
+}
+
+
+function sirv_find_size_name_size_array($sizes, $size_array){
+  $size_name = null;
+
+  list($master_width, $master_height) = $size_array;
+
+  foreach ($sizes as $size_name => $size) {
+    if ($master_width == $size["width"] && $master_height == $size["height"]) {
+      $size_name = $size_name;
+      break;
+    }
+  }
+
+  return $size_name;
+
+
 }
 
 
@@ -2700,11 +2764,9 @@ function sirv_get_image_size($size){
   $sizes['crop'] = (bool)get_option("{$size}_crop'");
 }
 
-function sirv_get_image_sizes($isRemoveZeroSizes = true)
-{
-  global $_wp_additional_image_sizes;
+function sirv_get_image_sizes($isRemoveZeroSizes = true){
 
-  if (isset($GLOBALS['sirv_wp_additional_image_sizes']) && !empty($GLOBALS['sirv_wp_additional_image_sizes'])) $_wp_additional_image_sizes = $GLOBALS['sirv_wp_additional_image_sizes'];
+  $_wp_additional_image_sizes = wp_get_additional_image_sizes();
 
   $sizes = array();
 
@@ -2723,7 +2785,6 @@ function sirv_get_image_sizes($isRemoveZeroSizes = true)
 
     if($isRemoveZeroSizes){
       //wp has sizes where width or height can be 0. This is correct behavior.
-      //if (($sizes[$_size]['width'] == 0) || ($sizes[$_size]['height'] == 0)) unset($sizes[$_size]);
       //skip only sizes with both 0
       if( ($sizes[ $_size ]['width'] == 0) && ($sizes[ $_size ]['height'] == 0) ) unset( $sizes[ $_size ] );
     }
@@ -2769,9 +2830,10 @@ function sirv_get_original_sizes($original_image_path){
 }
 
 
-function sirv_scale_image($image_url, $image_width, $image_height, $size, $original_image_path, $isCrop = false){
+function sirv_scale_image($image_url, $image_width, $image_height, $size, $wp_sizes, $original_image_path, $isCrop = false, $master_image_size=null){
 
-  $sizes = sirv_get_image_sizes();
+  //TODO:? make func cachable
+  //$wp_sizes = sirv_get_image_sizes();
 
   $image_url = sirv_clean_get_params($image_url);
 
@@ -2779,13 +2841,17 @@ function sirv_scale_image($image_url, $image_width, $image_height, $size, $origi
 
   //fix if width or height received from sirv_wp_get_attachment_image_src == 0
   if ($image_width == 0 || $image_height == 0 || $image_width >= 3000 || $image_height >= 3000) {
-    if (!empty($sizes) && !is_null($size) && in_array($size, array_keys($sizes))) {
-      $image_width = $sizes[$size]['width'];
-      $image_height = $sizes[$size]['height'];
+    if (!empty($wp_sizes) && !is_null($size) && in_array($size, array_keys($wp_sizes))) {
+      $image_width = $wp_sizes[$size]['width'];
+      $image_height = $wp_sizes[$size]['height'];
     }
   }
 
-  $cropType = sirv_get_crop_type($size, $sizes, $isCrop);
+  if(!is_null($master_image_size)){
+    $cropType = sirv_get_crop_type($master_image_size, $wp_sizes, $isCrop);
+  }else{
+    $cropType = sirv_get_crop_type($size, $wp_sizes, $isCrop);
+  }
 
   $url = $image_url . sirv_get_scale_pattern($image_width, $image_height, $cropType, $original_image_path,  $get_param_symbol);
 
@@ -3335,7 +3401,8 @@ function sirv_get_dispersion_path($filename){
 
 function sirv_get_path_strategy($folder_path, $filename){
   global $foldersData;
-  $overheadLimit = 5000;
+  global $overheadLimit;
+
   $folders_data = sirv_get_data_images_per_folder($overheadLimit);
   $path = array("original" => "", "encoded" => "");
 
@@ -3984,7 +4051,7 @@ function sirv_decode_chunk($data){
 }
 
 
-function checkAndCreatekDir($dir){
+function sirv_checkAndCreatekDir($dir){
   if (!is_dir($dir)) {
     mkdir($dir);
   }
@@ -4041,7 +4108,9 @@ function sirv_initialize_process_sync_images(){
     return;
   }
 
-  sirv_get_data_images_per_folder(5000, true);
+  global $overheadLimit;
+
+  sirv_get_data_images_per_folder($overheadLimit, true);
 
   echo json_encode(array('folders_calc_finished' => true));
 
@@ -4226,12 +4295,9 @@ function sirv_get_content(){
   }
 
   $sirv_path = empty($_POST['path']) ? '/' : $_POST['path'];
-  //$continuation = empty($_POST['continuation']) ? '' : $_POST['continuation'];
   $continuation = '';
 
-  $sirv_path = rawurlencode($sirv_path);
-  $sirv_path = str_replace('%2F', '/', $sirv_path);
-  $sirv_path = str_replace('%5C', '', $sirv_path);
+  $sirv_path = stripcslashes($sirv_path);
 
   $sirvAPIClient = sirv_getAPIClient();
 
@@ -4262,7 +4328,6 @@ function sirv_get_content(){
 
 
 function sirv_sort_content_data($data){
-  //$valid_images_ext = array("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg");
   $content = array('images' => array(), 'dirs' => array(), 'spins' => array(), 'files' => array(), 'videos' => array(), 'audio' => array(), 'models' => array());
   $files = array();
 
@@ -4398,7 +4463,7 @@ function sirv_upload_file_by_chanks_callback(){
   $APIClient = sirv_getAPIClient();
 
   $tmp_dir = $wp_uploads_dir . '/tmp_sirv_chunk_uploads/';
-  checkAndCreatekDir($tmp_dir);
+  sirv_checkAndCreatekDir($tmp_dir);
 
   $filename = $_POST['partFileName'];
   $fileRelativePath = Utils::startsWith('/', $_POST['partFilePath']) ? substr($_POST['partFilePath'], 1) : $_POST['partFilePath'];
@@ -4425,6 +4490,11 @@ function sirv_upload_file_by_chanks_callback(){
     session_write_close();
   }
 
+  if($partNum < $totalParts){
+    echo json_encode(array('status' => 'processing', 'stop' => false));
+
+  }
+
   if ($partNum == $totalParts) {
 
     $APIClient = sirv_getAPIClient();
@@ -4443,7 +4513,11 @@ function sirv_upload_file_by_chanks_callback(){
     $_SESSION['uploadingStatus'] = $arr_content;
     session_write_close();
 
-    if ($arr_content['processedImage'] == $arr_content['count']) echo json_encode(array('stop' => true));
+    if ($arr_content['processedImage'] == $arr_content['count']){
+      echo json_encode(array('stop' => true));
+    }else{
+      echo json_encode(array('status' => 'processing', 'stop' => false));
+    }
   }
 
   wp_die();
@@ -5085,6 +5159,11 @@ add_action('wp_ajax_sirv_disconnect', 'sirv_disconnect');
 function sirv_disconnect(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if( check_ajax_referer('ajax_validation_nonce', 'options_nonce') === false || !current_user_can('administrator') ){
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   update_option('SIRV_CLIENT_ID', '', 'no');
@@ -5799,7 +5878,7 @@ function sirv_monitoring_nopriv_ajax(){
 
       if (get_option('SIRV_ENABLE_CDN') === '1' && $isLoggedInAccount) {
         add_filter('wp_get_attachment_image_src', 'sirv_wp_get_attachment_image_src', 10000, 4);
-        add_filter('image_downsize', "sirv_image_downsize", 10000, 3);
+        //add_filter('image_downsize', "sirv_image_downsize", 10000, 3);
         add_filter('wp_get_attachment_url', 'sirv_wp_get_attachment_url', 10000, 2);
         add_filter('wp_calculate_image_srcset', 'sirv_add_custom_image_srcset', 10, 5);
         //add_filter('vc_wpb_getimagesize', 'sirv_vc_wpb_filter', 10000, 3);

@@ -4,7 +4,7 @@ Donate link: https://sirv.com/
 Tags: compress, optimize, image, resize, CDN
 Requires PHP: 5.6
 Requires at least: 3.0.1
-Tested up to: 6.3.1
+Tested up to: 6.4.2
 Stable tag: 4.7.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -234,6 +234,14 @@ The official [Sirv Help Center](https://sirv.com/help/) is full of easy advice, 
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+== 7.1.3 ==
+* Plugin tested with the latest WordPress version - 6.4.2.
+* Fixed minor security issue.
+* Added option to hide Sirv elements on the product edit page.
+* Improved the use of img srcset.
+* Fixed conflict with WPRocket JS file optimization.
+* Many small fixes and optimizations.
 
 == 7.1.2 ==
 * Added option to show/hide Sirv product image block.

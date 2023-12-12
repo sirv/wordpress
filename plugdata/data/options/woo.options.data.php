@@ -867,6 +867,70 @@ $admin_layout_options = array(
     'show_status' => false,
     'enabled_value' => 'show',
   ),
+  'SIRV_WOO_SHOW_SIRV_GALLERY' => array(
+    'enabled_option' => true,
+    'option_name' => 'SIRV_WOO_SHOW_SIRV_GALLERY',
+    'label' => 'Sirv gallery block',
+    'below_text' => 'Block shown on right side of WooCommerce product admin, to add extra assets to the media gallery and product variations.',
+    'type' => 'radio',
+    'is_new_line' => true,
+    'func' => 'render_radio_option',
+    'value' => '',
+    'values' => array(
+      array(
+        'label' => 'Show',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'show',
+        ),
+      ),
+      array(
+        'label' => 'Hide',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'hide',
+        ),
+      ),
+    ),
+    'default' => 'show',
+    'default_type' => 'str',
+    'show_status' => false,
+    'enabled_value' => 'show',
+  ),
+  'SIRV_WOO_SHOW_ADD_MEDIA_BUTTON' => array(
+    'enabled_option' => true,
+    'option_name' => 'SIRV_WOO_SHOW_ADD_MEDIA_BUTTON',
+    'label' => 'Sirv Add Media',
+    'below_text' => 'Button shown above product description/summary. Permits the addition of Sirv images, zooms, spins, videos, models or galleries.',
+    'type' => 'radio',
+    'is_new_line' => true,
+    'func' => 'render_radio_option',
+    'value' => '',
+    'values' => array(
+      array(
+        'label' => 'Show',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'show',
+        ),
+      ),
+      array(
+        'label' => 'Hide',
+        'check_data_type' => 'checked',
+        'attrs' => array(
+          'type' => 'radio',
+          'value' => 'hide',
+        ),
+      ),
+    ),
+    'default' => 'show',
+    'default_type' => 'str',
+    'show_status' => false,
+    'enabled_value' => 'show',
+  ),
 );
 
 

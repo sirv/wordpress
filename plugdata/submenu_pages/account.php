@@ -192,7 +192,7 @@ if ($sirvStatus) {
                 <input type="button" class="button-primary sirv-login-action sirv-init" value="Connect account">
                 <div class="sirv-load-acc-spinner">
                   <span class="sirv-traffic-loading-ico"></span>
-                  <span> Connecting into <span class="sirv-loading-acc-name"></span> account...</span>
+                  <span> Connecting to <span class="sirv-loading-acc-name"></span> account...</span>
                 </div>
               </div>
             </td>
