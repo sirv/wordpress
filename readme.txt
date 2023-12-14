@@ -212,6 +212,9 @@ The official [Sirv Help Center](https://sirv.com/help/) is full of easy advice, 
 * [API](https://sirv.com/help/resources/api/)
 * [Responsive-Imaging](https://sirv.com/help/resources/responsive-imaging/)
 
+= How can I report security bugs? =
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/sirv)
+
 == Screenshots ==
 
 1. Responsive image gallery, with perfectly scaled images.
@@ -234,6 +237,9 @@ The official [Sirv Help Center](https://sirv.com/help/) is full of easy advice, 
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 7.1.4 =
+* Added link to Patchstack bug report program.
 
 == 7.1.3 ==
 * Plugin tested with the latest WordPress version - 6.4.2.

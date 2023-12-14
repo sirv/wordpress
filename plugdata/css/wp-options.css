@@ -1569,44 +1569,48 @@ span.sirv-crop-row__title {
 .sirv-check-all-thumbs {
 	margin-bottom:0;
 }
-.sirv-scrollbox {
-	background: none !important;
+
+.sirv-scrollbox-parent {
 	position: relative;
 }
-	.sirv-scrollbox-parent {
-	position: relative;
-}
-.sirv-scrollbox-parent:after {
-	content:'';
-	position: absolute;
-	top:0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	pointer-events: none;
-	display: block;
-    z-index: 1;
 
-	background:
-	/* Shadow covers */
-	linear-gradient(transparent 30%, rgba(255,255,255,0)),
-	linear-gradient(rgba(255,255,255,0), transparent 70%) 0 100%,
-	/* Shadows */
-	radial-gradient(50% 0, farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)),
-	radial-gradient(50% 100%,farthest-side, rgba(0,0,0,.2), rgba(0,0,0,0)) 0 100%;
-	background:
-	/* Shadow covers */
-	linear-gradient(transparent 30%, rgba(255,255,255,0)),
-	linear-gradient(rgba(255,255,255,0), transparent 70%) 0 100%,
-	/* Shadows */
-	radial-gradient(farthest-side at 50% 0, rgba(0,0,0,.2), rgba(0,0,0,0)),
-	radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,.2), rgba(0,0,0,0)) 0 100%;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
-	background-attachment: local, local, scroll, scroll;
+.sirv-shadow {
+    position: absolute;
+    left: 0;
+    z-index: 100;
+    width: 100%;
+    height: 10px;
+    background: red;
 }
 
+.sirv-shadow-top {
+    top: 0;
+    opacity: 0;
+    /* background: -webkit-linear-gradient(270deg, rgba(0, 0, 0, 0.35), transparent);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent); */
+    background: linear-gradient(transparent 30%, rgba(255, 255, 255, 0)),
+            linear-gradient(rgba(255, 255, 255, 0), transparent 70%) 0 100%,
+            radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, .2), rgba(0, 0, 0, 0)),
+            radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, .2), rgba(0, 0, 0, 0)) 0 100%;
+    background-repeat: no-repeat;
+        background-color: transparent;
+        background-size: 100% 40px, 0% 0, 0 0, 100% 14px;
+        background-attachment: local, local, scroll, scroll;
+}
+
+.sirv-shadow-bottom {
+    bottom: 0;
+    /* background: -webkit-linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.35), transparent); */
+    background: linear-gradient(transparent 30%, rgba(255, 255, 255, 0)),
+            linear-gradient(rgba(255, 255, 255, 0), transparent 70%) 0 100%,
+            radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, .2), rgba(0, 0, 0, 0)),
+            radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, .2), rgba(0, 0, 0, 0)) 0 100%;
+    background-repeat: no-repeat;
+        background-color: transparent;
+        background-size: 100% 40px, 0% 0, 0 0, 100% 14px;
+        background-attachment: local, local, scroll, scroll;
+}
 
 /* NEW SYNC PROGRESS BLOCK */
 .sirv-sync-images-progress-block {

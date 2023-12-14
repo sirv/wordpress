@@ -267,18 +267,20 @@ $storageInfo = sirv_getStorageInfo();
             </div>
           </div>
           <div class="sirv-scrollbox-parent">
+            <div class="sirv-shadow sirv-shadow-top"></div>
+            <div class="sirv-shadow sirv-shadow-bottom"></div>
             <div class="sirv-thumbs-sizes sirv-scrollbox">
               <?php
-                $prevented_sizes = json_decode(get_option('SIRV_PREVENTED_SIZES'), true);
-                //$critical_sizes = ['medium', 'thumbnail'];
-                $critical_sizes = [];
-                //$critical_msg = "Strongly do not recomended delete this size as it is using in admin area";
+              $prevented_sizes = json_decode(get_option('SIRV_PREVENTED_SIZES'), true);
+              //$critical_sizes = ['medium', 'thumbnail'];
+              $critical_sizes = [];
+              //$critical_msg = "Strongly do not recomended delete this size as it is using in admin area";
 
-                foreach ($wp_sizes as $size_name => $size) {
-                  $msg = in_array($size_name, $critical_sizes) ? ' (<span style="display: initial;color: red;">' . $critical_msg . '</span>)' : '';
-                  $is_prevent_size = isset($prevented_sizes[$size_name]) ? 'delete' : 'keep';
+              foreach ($wp_sizes as $size_name => $size) {
+                $msg = in_array($size_name, $critical_sizes) ? ' (<span style="display: initial;color: red;">' . $critical_msg . '</span>)' : '';
+                $is_prevent_size = isset($prevented_sizes[$size_name]) ? 'delete' : 'keep';
 
-                  $size_str = $size_name . $msg .  "<span>" . $size['width'] . "x" . $size['height'] . "</span>";
+                $size_str = $size_name . $msg .  "<span>" . $size['width'] . "x" . $size['height'] . "</span>";
               ?>
                 <div class="sirv-crop-row">
                   <span class="sirv-crop-row__title"><?php echo $size_str; ?></span>

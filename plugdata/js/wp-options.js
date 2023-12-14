@@ -2546,6 +2546,21 @@ jQuery(function ($) {
         //-----------------------END sirv js modules------------------
 
 
+        $(".sirv-scrollbox").on("scroll", scrollShadows);
+        function scrollShadows(){
+            const content = document.querySelector(".sirv-scrollbox");
+            const wrapper = document.querySelector(".sirv-scrollbox-parent");
+            const shadowTop = document.querySelector(".sirv-shadow-top");
+            const shadowBottom = document.querySelector(".sirv-shadow-bottom");
+
+            let contentScrollHeight = content.scrollHeight - wrapper.offsetHeight;
+
+            let currentScroll = $(this).scrollTop() / contentScrollHeight;
+            shadowTop.style.opacity = currentScroll;
+            shadowBottom.style.opacity = 1 - currentScroll;
+        }
+
+
         //-----------------------initialization-----------------------
         setProfiles();
         getTabFromUrlHash();
