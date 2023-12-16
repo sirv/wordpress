@@ -469,7 +469,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_disconnect',
-                    'options_nonce': sirv_options_data.ajaxnonce,
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",

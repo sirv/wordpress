@@ -213,6 +213,7 @@ The official [Sirv Help Center](https://sirv.com/help/) is full of easy advice, 
 * [Responsive-Imaging](https://sirv.com/help/resources/responsive-imaging/)
 
 = How can I report security bugs? =
+
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/sirv)
 
 == Screenshots ==
@@ -237,6 +238,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 7.1.5 =
+* Improved security checking.
 
 = 7.1.4 =
 * Added link to Patchstack bug report program.
