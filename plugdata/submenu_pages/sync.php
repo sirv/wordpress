@@ -34,7 +34,7 @@ $storageInfo = sirv_getStorageInfo();
               <div class="sirv-progress__text--percents"><?php echo $cacheInfo['progress'] . '%'; ?></div>
               <div class="sirv-progress__text--complited"><span><?php echo $cacheInfo['q_s'] . ' out of ' . $cacheInfo['total_count_s']; ?></span> images completed</div>
             </div>
-            <!-- <div class="sirv-progress__bar <?php if ($isSynced) echo 'sirv-failed-imgs-bar'; ?>"> -->
+            <!-- <div class="sirv-progress__bar <?php if ($isAllSynced) echo 'sirv-failed-imgs-bar'; ?>"> -->
             <div class="sirv-progress__bar">
               <div class="sirv-progress__bar--line-complited sirv-complited" style="width: <?php echo $cacheInfo['progress_complited'] . '%;'; ?>"></div>
               <div class="sirv-progress__bar--line-queued sirv-queued" style="width: <?php echo $cacheInfo['progress_queued'] . '%;'; ?>"></div>
@@ -42,24 +42,36 @@ $storageInfo = sirv_getStorageInfo();
             </div>
           </div>
           <?php if (!$isMuted) { ?>
-            <div class="sirv-sync-button-container">
-              <input type="button" name="sirv-sync-images" class="button-primary sirv-initialize-sync" value="<?php echo $sync_button_text; ?>" <?php echo $is_sync_button_disabled; ?> />
-            </div>
+            <!-- <div class="sirv-sync-button-container">
+              <input type="button" name="sirv-sync-images" class="button-primary sirv-sync-images" value="<?php echo $sync_button_text; ?>" <?php echo $is_sync_button_disabled; ?> />
+            </div> -->
           <?php } ?>
         </div>
+        <?php
+        $syncedClearCacheActionShow = $isSynced ? '' : 'display: none;';
+        $failedClearCacheActionShow = $isFailed ? '' : 'display: none;';
+        ?>
         <table class="sirv-progress-data">
           <tbody>
-            <tr>
+            <tr class="sirv-progress-data-first-row">
               <td>
                 <div class="sirv-progress-data__label sirv-complited"></div>
               </td>
               <td>Synced</td>
               <td>
-                <div class="sirv-progress-data__complited--text"><?php echo $cacheInfo['q_s']; ?></div>&nbsp;&nbsp;&nbsp;
+                <div class="sirv-progress-data__complited--text"><?php echo $cacheInfo['q_s']; ?></div>
+              </td>
+              <td>
                 <div class="sirv-progress-data__complited--size"><?php echo $cacheInfo['size_s']; ?></div>
               </td>
+              <td>
+                <div class="sirv-synced-clear-cache-action" style="<?php echo $syncedClearCacheActionShow; ?>">
+                  <a href="#" class="sirv-clear-cache" data-type="synced">Clear cache</a>
+                  <span class="sirv-traffic-loading-ico" style="display: none;"></span>
+                </div>
+              </td>
             </tr>
-            <tr>
+            <tr class="sirv-progress-data-second-row">
               <td>
                 <div class="sirv-progress-data__label sirv-queued"></div>
               </td>
@@ -78,18 +90,26 @@ $storageInfo = sirv_getStorageInfo();
               <td>
                 <div class="sirv-progress-data__queued--text"><?php echo $cacheInfo['queued_s']; ?></div>
               </td>
-              <td>
-              </td>
+              <td></td>
+              <td></td>
             </tr>
-            <tr>
+            <tr class="sirv-progress-data-third-row">
               <td>
                 <div class="sirv-progress-data__label sirv-failed"></div>
               </td>
               <td>Failed</td>
               <td>
                 <div class="sirv-progress-data__failed--text"><?php echo $cacheInfo['FAILED']['count_s']; ?></div>&nbsp;&nbsp;&nbsp;
+              </td>
+              <td>
                 <div class="failed-images-block" style="<?php echo $is_show_failed_block; ?>">
                   <span class=" sirv-traffic-loading-ico" style="display: none;"></span><a href="#">Show</a>
+                </div>
+              </td>
+              <td>
+                <div class="sirv-failed-clear-cache-action" style="<?php echo $failedClearCacheActionShow; ?>">
+                  <a href="#" class="sirv-clear-cache" data-type="failed">Clear cache</a>
+                  <span class="sirv-traffic-loading-ico" style="display: none;"></span>
                 </div>
               </td>
             </tr>
@@ -125,48 +145,40 @@ $storageInfo = sirv_getStorageInfo();
             </?php>
         </td>
       </tr>
-      <tr class='sirv-resync-block' style="<?php echo $is_show_resync_block; ?>">
-        <td colspan="2">
-          <span>
-            <h3>Re-Synchronize</h3>
-            <p class="sirv-options-desc">Delete the database cache so missing images can be retried.</p>
-          </span>
-        </td>
-      </tr>
       <?php
-      $g_disabled = $isGarbage ? '' : 'disabled';
-      $g_checked = $isGarbage ? 'checked' : '';
       $g_show = $isGarbage ? '' : 'style="display: none;"';
-      $g_dis_class = $isGarbage ? '' : 'sirv-dis-text';
-      $f_disabled = $isFailed ? '' : 'disabled';
-      $f_dis_class = $isFailed ? '' : 'sirv-dis-text';
-      $f_checked = $isFailed ? 'checked' : '';
-      $a_checked = !$isFailed ? 'checked' : '';
       ?>
       <tr class="sirv-discontinued-images" <?php echo $g_show; ?>>
         <td class="no-padding" colspan="2">
           <div class="sirv-message warning-message">
             <span style="font-size: 15px;font-weight: 800;">Recommendation:</span> <span class="sirv-old-cache-count"><?php echo $cacheInfo['garbage_count'] ?></span> images in plugin database no longer exist.&nbsp;&nbsp;
-            <input type="button" name="optimize_cache" class="button-primary optimize-cache" value="Clean up" />&nbsp;
+            <input type="button" name="optimize_cache" class="button-primary sirv-clear-cache" data-type="garbage" value="Clean up" />&nbsp;
             <span class="sirv-traffic-loading-ico" style="display: none;"></span>
           </div>
         </td>
       </tr>
-      <tr class="sirv-resync-block small-padding" style="<?php echo $is_show_resync_block; ?>">
+      <tr>
         <td colspan="2">
-          <label class="sirv-ec-failed-item <?php echo $f_dis_class; ?>">
-            <input type="radio" name="empty_cache" value="failed" <?php echo $f_disabled . ' ' . $f_checked; ?>>Failed images (<?php echo $cacheInfo['FAILED']['count_s']; ?>)
-          </label>
-          <br>
-          <label class="sirv-ec-all-item">
-            <input type="radio" name="empty_cache" value="all" <?php echo $a_checked; ?>>All images (<?php echo ($cacheInfo['total_count'] - $cacheInfo['queued']) ?>)
-          </label>
+          <div class="sirv-sync-controls">
+            <?php if (!$isMuted) { ?>
+              <input type="button" name="sirv-sync-images" class="button-primary sirv-sync-images" value="<?php echo $sync_button_text; ?>" <?php echo $is_sync_button_disabled; ?> />
+              <!-- <input type="button" name="sirv-check-cache" class="button-secondary" value="Check cache" /> -->
+            <?php } ?>
+          </div>
         </td>
       </tr>
-      <tr class="sirv-resync-block sirv-resync-button-block" style="<?php echo $is_show_resync_block; ?>">
-        <td>
-          <input type="button" name="empty_cache" class="button-primary empty-cache" value="Empty database cache" />&nbsp;
-          <span class="sirv-traffic-loading-ico" style="display: none;"></span>
+    <?php } ?>
+  </table>
+</div>
+
+<!-- Diff settings block END -->
+<div class="sirv-optiontable-holder sirv-sync-delete-settings-wrapper">
+  <table class="optiontable form-table">
+    <tbody>
+      <tr>
+        <td colspan="2">
+          <h3>Settings</h3>
+          <!-- <p class="sirv-options-desc">Some description here</p> -->
         </td>
       </tr>
       <tr>
@@ -180,26 +192,6 @@ $storageInfo = sirv_getStorageInfo();
             <label>User<input type="text" placeholder="Server username" name="SIRV_HTTP_AUTH_USER" value="<?php echo get_option('SIRV_HTTP_AUTH_USER'); ?>"></label><br>
             <label>Password<input type="text" placeholder="Server password" name="SIRV_HTTP_AUTH_PASS" value="<?php echo get_option('SIRV_HTTP_AUTH_PASS'); ?>"></label>
           </div>
-        </td>
-      </tr>
-      <tr>
-        <th></th>
-        <td>
-          <input type="submit" name="submit" class="button-primary sirv-save-settings" value="<?php _e('Save settings') ?>" />
-        </td>
-      </tr>
-    <?php } ?>
-  </table>
-</div>
-
-<!-- Diff settings block END -->
-<div class="sirv-optiontable-holder sirv-sync-delete-settings-wrapper">
-  <table class="optiontable form-table">
-    <tbody>
-      <tr>
-        <td colspan="2">
-          <h3>Miscellaneous</h3>
-          <!-- <p class="sirv-options-desc">Some description here</p> -->
         </td>
       </tr>
       <tr>

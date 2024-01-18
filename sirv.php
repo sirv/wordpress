@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.1.5
+ * Version:           7.2.0
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -21,7 +21,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 ini_set("error_log", "/tmp/php-error.log");
 error_log( "Hello, errors!" );*/
 
-define('SIRV_PLUGIN_VERSION', '7.1.5');
+define('SIRV_PLUGIN_VERSION', '7.2.0');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 //define('SIRV_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -47,7 +47,6 @@ require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/resize.class.php');
 require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/logger.class.php');
 require_once(SIRV_PLUGIN_SUBDIR_PATH . 'shortcodes.php');
 
-global $s3client;
 global $APIClient;
 global $foldersData;
 global $syncData;
@@ -70,12 +69,11 @@ global $sirv_is_rest_rejected;
 global $overheadLimit;
 
 $logger = new SirvLogger(SIRV_PLUGIN_PATH, ABSPATH);
-$s3client = false;
 $APIClient = false;
 $syncData = array();
 $pathsData = array();
 $isLocalHost = sirv_is_local_host();
-$isLoggedInAccount = (get_option('SIRV_AWS_BUCKET') !== '' && get_option('SIRV_CDN_URL') !== '') ? true : false;
+$isLoggedInAccount = (get_option('SIRV_ACCOUNT_NAME') !== '' && get_option('SIRV_CDN_URL') !== '') ? true : false;
 $isAdmin = sirv_isAdmin();
 $isFetchUpload = true;
 $isFetchUrl = false;
@@ -827,11 +825,15 @@ function sirv_fill_empty_options(){
   if (!get_option('SIRV_MUTE')) update_option('SIRV_MUTE', '', 'no');
   if (!get_option('SIRV_MUTE_ERROR_MESSAGE')) update_option('SIRV_MUTE_ERROR_MESSAGE', '', 'no');
   if (!get_option('SIRV_ACCOUNT_EMAIL')) update_option('SIRV_ACCOUNT_EMAIL', '');
+  if (!get_option('SIRV_ACCOUNT_NAME')){
+    if( !empty(get_option("SIRV_AWS_BUCKET")) ){
+      update_option('SIRV_ACCOUNT_NAME', get_option("SIRV_AWS_BUCKET"));
+    }else{
+      update_option('SIRV_ACCOUNT_NAME', '');
+    }
+  }
   if (!get_option('SIRV_CDN_URL')) update_option('SIRV_CDN_URL', '');
   if (!get_option('SIRV_STAT')) update_option('SIRV_STAT', '', 'no');
-  if (!get_option('SIRV_AWS_BUCKET')) update_option('SIRV_AWS_BUCKET', '');
-  if (!get_option('SIRV_AWS_KEY')) update_option('SIRV_AWS_KEY', '');
-  if (!get_option('SIRV_AWS_SECRET_KEY')) update_option('SIRV_AWS_SECRET_KEY', '');
   if (!get_option('SIRV_FETCH_MAX_FILE_SIZE')) update_option('SIRV_FETCH_MAX_FILE_SIZE', '');
   if (!get_option('SIRV_CSS_BACKGROUND_IMAGES')) update_option('SIRV_CSS_BACKGROUND_IMAGES', '');
   if (!get_option('SIRV_CSS_BACKGROUND_IMAGES_SYNC_DATA')) update_option('SIRV_CSS_BACKGROUND_IMAGES_SYNC_DATA', json_encode(array(
@@ -857,7 +859,6 @@ function sirv_fill_empty_options(){
   if (!get_option('SIRV_EXCLUDE_PAGES')) update_option('SIRV_EXCLUDE_PAGES', '');
   if (!get_option('SIRV_EXCLUDE_RESPONSIVE_FILES')) update_option('SIRV_EXCLUDE_RESPONSIVE_FILES', '');
 
-  if (get_option('SIRV_AWS_HOST') !== 's3.sirv.com' || !get_option('SIRV_AWS_HOST')) update_option('SIRV_AWS_HOST', 's3.sirv.com');
   if (!get_option('SIRV_NETWORK_TYPE')) update_option('SIRV_NETWORK_TYPE', '2');
   if (!get_option('SIRV_PARSE_STATIC_IMAGES')) update_option('SIRV_PARSE_STATIC_IMAGES', '1');
   if (!get_option('SIRV_PARSE_VIDEOS')) update_option('SIRV_PARSE_VIDEOS', 'off');
@@ -1250,11 +1251,16 @@ function sirv_button($editor_id = 'content'){
   if(  $post_type == 'product' && get_option('SIRV_WOO_SHOW_ADD_MEDIA_BUTTON') == 'hide' ) return;
 
   wp_enqueue_style('fontAwesome', "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css", array());
+
+  wp_register_style('sirv_toast_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/vendor/toastr.css');
+  wp_enqueue_style('sirv_toast_style');
+  wp_enqueue_script('sirv_toast_js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/toastr.min.js', array('jquery'), false);
+
   wp_register_style('sirv_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv.css');
   wp_enqueue_style('sirv_style');
   wp_register_style('sirv_mce_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv-shortcode-view.css');
   wp_enqueue_style('sirv_mce_style');
-  wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable'), false);
+  wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), false);
   wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
     'ajaxurl' => admin_url('admin-ajax.php'),
     'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
@@ -1280,12 +1286,10 @@ function sirv_button($editor_id = 'content'){
 
 
 function sirv_check_empty_options_on_backend(){
-  $host = getValue::getOption('SIRV_AWS_HOST');
-  $bucket = getValue::getOption('SIRV_AWS_BUCKET');
-  $key = getValue::getOption('SIRV_AWS_KEY');
-  $secret_key = getValue::getOption('SIRV_AWS_SECRET_KEY');
+  $account_name = getValue::getOption('SIRV_ACCOUNT_NAME');
+  $cdn_url = getValue::getOption('SIRV_CDN_URL');
 
-  if (empty($host) || empty($bucket) || empty($key) || empty($secret_key)) {
+  if (empty($account_name) || empty($cdn_url)) {
     return false;
   } else {
     return true;
@@ -1331,11 +1335,16 @@ function sirv_admin_scripts(){
     //check if gutenberg is active or it is categories page
     if (function_exists('register_block_type') || $pagenow == 'edit-tags.php') {
       wp_enqueue_style('fontAwesome', "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css", array());
+
+      wp_register_style('sirv_toast_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/vendor/toastr.css');
+      wp_enqueue_style('sirv_toast_style');
+      wp_enqueue_script('sirv_toast_js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/toastr.min.js', array('jquery'), false);
+
       wp_register_style('sirv_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv.css');
       wp_enqueue_style('sirv_style');
       wp_register_style('sirv_mce_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv-shortcode-view.css');
       wp_enqueue_style('sirv_mce_style');
-      wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable'), '1.1.0');
+      wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), '1.1.0');
       wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
         'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
@@ -1368,7 +1377,14 @@ function sirv_admin_scripts(){
     wp_register_style('sirv_options_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-options.css');
     wp_enqueue_style('sirv_options_style');
     wp_enqueue_script('sirv_scrollspy', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/scrollspy.js', array('jquery'), '1.0.0');
-    wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable'), false, true);
+
+    //ui
+    wp_register_style('sirv-ui-css', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv-ui.css');
+    wp_enqueue_style('sirv-ui-css');
+    wp_enqueue_script('sirv_modal', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-bpopup.min.js', array('jquery'), '1.0.0');
+    wp_enqueue_script('sirv_ui-js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-ui.js', array('jquery', 'jquery-ui-sortable', 'sirv_modal'), false);
+
+    wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable', 'sirv_ui-js'), false, true);
     wp_localize_script('sirv_options', 'sirv_options_data', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
       'ajaxnonce' => wp_create_nonce('ajax_validation_nonce'),
@@ -1387,9 +1403,14 @@ function sirv_admin_scripts(){
 
   if (isset($_GET['page']) && $_GET['page'] == SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'shortcodes-view.php') {
     wp_enqueue_style('fontAwesome', "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css", array());
+
+    wp_register_style('sirv_toast_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/vendor/toastr.css');
+    wp_enqueue_style('sirv_toast_style');
+    wp_enqueue_script('sirv_toast_js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/toastr.min.js', array('jquery'), false);
+
     wp_register_style('sirv_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv.css');
     wp_enqueue_style('sirv_style');
-    wp_enqueue_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable'), false);
+    wp_enqueue_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), false);
     wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
       'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets')
@@ -1480,7 +1501,7 @@ function sirv_redirect_to_options(){
     return;
   }
 
-  if (get_option('SIRV_AWS_BUCKET') == '' || get_option('SIRV_AWS_KEY') == '' || get_option('SIRV_AWS_SECRET_KEY') == '') {
+  if ( get_option('SIRV_ACCOUNT_NAME') == '' || get_option('SIRV_CDN_URL') == '' ) {
     // Redirect to bbPress about page
     wp_safe_redirect(add_query_arg(array('page' => SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/account.php'), admin_url('admin.php')));
   }
@@ -1488,10 +1509,6 @@ function sirv_redirect_to_options(){
 
 
 function sirv_register_settings(){
-  register_setting('sirv-settings-group', 'SIRV_AWS_KEY');
-  register_setting('sirv-settings-group', 'SIRV_AWS_SECRET_KEY');
-  register_setting('sirv-settings-group', 'SIRV_AWS_HOST');
-  register_setting('sirv-settings-group', 'SIRV_AWS_BUCKET');
   register_setting('sirv-settings-group', 'SIRV_FOLDER');
   register_setting('sirv-settings-group', 'SIRV_ENABLE_CDN');
   register_setting('sirv-settings-group', 'SIRV_NETWORK_TYPE');
@@ -1504,6 +1521,7 @@ function sirv_register_settings(){
   register_setting('sirv-settings-group', 'SIRV_MUTE');
   register_setting('sirv-settings-group', 'SIRV_MUTE_ERROR_MESSAGE');
   register_setting('sirv-settings-group', 'SIRV_ACCOUNT_EMAIL');
+  register_setting('sirv-settings-group', 'SIRV_ACCOUNT_NAME');
   register_setting('sirv-settings-group', 'SIRV_CDN_URL');
   register_setting('sirv-settings-group', 'SIRV_STAT');
   register_setting('sirv-settings-group', 'SIRV_FETCH_MAX_FILE_SIZE');
@@ -1549,16 +1567,6 @@ function sirv_register_settings(){
   OptionsHelper::prepareOptionsData();
   OptionsHelper::register_settings();
 }
-
-
-/* add_action('update_option_SIRV_NETWORK_TYPE', 'sirv_set_network_type_config', 10, 2);
-function sirv_set_network_type_config($old_value, $new_value)
-{
-  if ($old_value !== $new_value) {
-    $sirvAPIClient = sirv_getAPIClient();
-    $sirvAPIClient->configCDN($new_value === '1', get_option('SIRV_AWS_BUCKET'));
-  }
-} */
 
 
 add_action('update_option_SIRV_FOLDER', 'sirv_set_folder_config', 10, 2);
@@ -1813,19 +1821,6 @@ function sirv_builder_render_css($css, $nodes, $global_settings){
 }
 
 
-// remove http(s) from host in sirv options
-add_action('admin_notices', 'sirv_check_option');
-
-function sirv_check_option(){
-  global $pagenow;
-  if ($pagenow == 'admin.php' && $_GET['page'] == SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'options.php') {
-    if ((isset($_GET['updated']) && $_GET['updated'] == 'true') || (isset($_GET['settings-updated']) && $_GET['settings-updated'] == 'true')) {
-      update_option('SIRV_AWS_HOST', preg_replace('/(http|https)\:\/\/(.*)/ims', '$2', get_option('SIRV_AWS_HOST')));
-    }
-  }
-}
-
-
 add_filter('rest_request_before_callbacks', 'sirv_rest_request_before_callbacks', 10, 4);
 function sirv_rest_request_before_callbacks($response, $handler, $request){
   global $sirv_is_rest_rejected;
@@ -1977,7 +1972,8 @@ function sirv_envira_crop($resized_image, $id, $item, $data){
 
 function sirv_is_sirv_item($url){
     if( empty($url) ) return false;
-    $sirv_cdn_url = get_option('SIRV_CDN_URL');
+    //$sirv_cdn_url = get_option('SIRV_CDN_URL');
+    $sirv_cdn_url = sirv_get_cached_cdn_url();
     $sirv_url = empty($sirv_cdn_url) ? 'sirv.com' : $sirv_cdn_url;
     return stripos($url, $sirv_url) !== false;
   }
@@ -2064,7 +2060,7 @@ function sirv_get_cached_cdn_url(){
 
 function sirv_do_responsive_images($attr, $attachment, $size){
 
-  if( is_admin() ) return $attr;
+  if( is_admin() ||  !sirv_is_sirv_item($attr['src']) ) return $attr;
 
   $isExclude = Exclude::excludeSirvContent($attr['src'], 'SIRV_EXCLUDE_FILES');
 
@@ -2075,24 +2071,17 @@ function sirv_do_responsive_images($attr, $attachment, $size){
 
   if ($isResponsiveExclude || $isExclude) return $attr;
 
-  $sirv_cdn_url = sirv_get_cached_cdn_url();
-
-  if (empty($sirv_cdn_url) || stripos($attr['src'], $sirv_cdn_url) === false) return $attr;
-
   $placeholder_type = get_option('SIRV_RESPONSIVE_PLACEHOLDER');
+  $img_size = sirv_get_responsive_size($attr['src'], $size);
 
-  //$url = sirv_prepareResponsiveImage($attr['src']);
   $url = sirv_get_parametrized_url($attr['src']);
-  $plchldr_data  = sirv_prepare_placeholder_data($url, $size, $placeholder_type);
+  $plchldr_data  = sirv_prepare_placeholder_data($url, $img_size, $placeholder_type);
 
   $attr['class'] = isset($attr['class']) ? $attr['class'] . ' ' . $plchldr_data['classes'] : $plchldr_data['classes'];
   $attr['data-src'] = $url;
 
   if ($plchldr_data['url']) {
     $attr['src'] = $plchldr_data['url'];
-    $attr['width'] = $plchldr_data['width'];
-  }else{
-    //unset($attr['src']);
   }
 
   unset($attr['srcset']);
@@ -2102,26 +2091,47 @@ function sirv_do_responsive_images($attr, $attachment, $size){
 }
 
 
-function sirv_prepareResponsiveImage($url){
-  $profile = get_option('SIRV_CDN_PROFILES');
-  $url = sirv_clean_get_params($url);
+function sirv_get_responsive_size($url, $size){
+  $calc_size = array("width" => 0, "height" => 0);
 
-  if ($profile) $url .= "?profile=$profile";
+  $size = array();
 
-  return $url;
+  if( isset($size) && !empty($size) ){
+    $wp_sizes = sirv_get_image_sizes(false);
+
+    if (is_array($size)) {
+      $calc_size['width'] = $size[0];
+      $calc_size['height'] = $size[1];
+    } else {
+      if ( isset($wp_sizes[$size]) ) {
+        if($wp_sizes[$size]['width'] != 0) $calc_size['width'] = $wp_sizes[$size]['width'];
+        if($wp_sizes[$size]['height'] != 0) $calc_size['height'] = $wp_sizes[$size]['height'];
+      }
+    }
+  }
+
+  if( $calc_size['width'] == 0 && $calc_size['height'] == 0 ){
+    $url_query = '';
+    $url_params = array();
+
+    $url_query = parse_url($url, PHP_URL_QUERY);
+
+    if( !empty($url_query) ) parse_str($url_query, $url_params);
+
+    if( isset($url_params['w']) ) $calc_size['width'] = $url_params['w'];
+    if( isset($url_params['h']) ) $calc_size['height'] = $url_params['h'];
+  }
+
+  return $calc_size;
 }
 
 
 function sirv_prepare_placeholder_data($url, $size, $placeholder_type){
-  $wp_sizes = sirv_get_image_sizes(false);
   $placeholder_data = array('url' => '', 'width' => '', 'classes' => 'Sirv');
 
-  if (is_array($size)) {
-    $placeholder_data['width'] = $size[0];
-  } else {
-    if (isset($wp_sizes[$size]) && $wp_sizes[$size]['width'] != 0) {
-      $placeholder_data['width'] = $wp_sizes[$size]['width'];
-    }
+
+  if ($size['width'] != 0) {
+    $placeholder_data['width'] = $size['width'];
   }
 
   if ($placeholder_data['width']) {
@@ -2148,7 +2158,7 @@ function sirv_get_placehodler_url($placeholder_type, $url, $width){
 
   switch ($placeholder_type) {
     case 'image':
-      $placeholder_url = $url . $delimiter . 'w=' . $width . '&q=30';
+      $placeholder_url = $url . $delimiter . 'w=' . sirv_get_scaled_image_width($width, 35) . '&q=30';
       break;
     case 'grey_shape':
       $placeholder_url= $url . $placeholder_grey_params;
@@ -2160,6 +2170,16 @@ function sirv_get_placehodler_url($placeholder_type, $url, $width){
   }
 
   return $placeholder_url;
+}
+
+
+//scale in persents(1-100) related to original image. Scale equal to 30% means that we get image width less on 70%;
+function sirv_get_scaled_image_width($width, $scale = 30){
+  if( $width > 0 ){
+    return intval($width * $scale / 100);
+  }
+
+  return $width;
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -2493,7 +2513,7 @@ function sirv_get_parametrized_url($sirv_url, $size = null, $isCrop=false){
 
   $sirv_image_with_params = sirv_get_scale_pattern_from_wp_size($sirv_image . $item_show_pattern, $size);
 
-  return $sirv_image_with_params;
+  return sirv_add_profile($sirv_image_with_params);
 }
 
 
@@ -2950,8 +2970,8 @@ function sirv_get_sirv_path($path = ''){
   if(!empty($cdn_url)){
     $sirv_path = "https://$cdn_url" . $subpath;
   }else{
-    $bucket = get_option('SIRV_AWS_BUCKET');
-    $sirv_path = "https://$bucket.sirv.com" . $subpath;
+    $account_name = get_option('SIRV_ACCOUNT_NAME');
+    $sirv_path = "https://$account_name.sirv.com" . $subpath;
   }
 
   return $sirv_path;
@@ -3117,6 +3137,20 @@ function sirv_get_cdn_image($attachment_id, $wait = false){
     }
 
     $image_size = empty($headers) ? filesize($paths['img_file_path']) : (int) $headers['Content-Length'];
+
+    if( !empty($image_size) && $image_size > 32000000 ){
+      $data = array(
+        'attachment_id' => $attachment_id,
+        'img_path' => $paths['image_rel_path'],
+        'status' => 'FAILED',
+        'error_type' => 2,
+      );
+
+      $result = $wpdb->insert($sirv_images_t, $data);
+
+      return '';
+    }
+
     $image_created_timestamp = empty($headers)
       ? date("Y-m-d H:i:s", filemtime($paths['img_file_path']))
       : date("Y-m-d H:i:s", strtotime($headers['Last-Modified']));
@@ -3654,31 +3688,6 @@ function sirv_wpseo_opengraph_image($img){
 
 
 //-------------------------------------------------------------Ajax requests-------------------------------------------------------------------------//
-function sirv_get_params_array($key = null, $secret_key = null, $bucket = null, $host = null){
-  $host       = is_null($host) ? 's3.sirv.com' : $host;
-  $bucket     = is_null($bucket) ? getValue::getOption('SIRV_AWS_BUCKET') : $bucket;
-  $key        = is_null($key) ? getValue::getOption('SIRV_AWS_KEY') : $key;
-  $secret_key = is_null($secret_key) ? getValue::getOption('SIRV_AWS_SECRET_KEY') : $secret_key;
-
-  return array(
-    'host'       => $host,
-    'bucket'     => $bucket,
-    'key'        => $key,
-    'secret_key' => $secret_key
-  );
-}
-
-function sirv_getS3Client(){
-  global $s3client;
-  if ($s3client) {
-    return $s3client;
-  } else {
-    require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/aws.api.class.php');
-    return $s3client = new MagicToolbox_AmazonS3_Helper(sirv_get_params_array());
-  }
-}
-
-
 function sirv_getAPIClient(){
   global $APIClient;
   if ($APIClient) {
@@ -3959,7 +3968,9 @@ function sirv_getErrorsInfo(){
   }
 
   $errors = FetchError::get_errors_from_db();
-  $file_size_fetch_limit = empty((int) get_option('SIRV_FETCH_MAX_FILE_SIZE')) ?  '' : ' (' . Utils::getFormatedFileSize(get_option('SIRV_FETCH_MAX_FILE_SIZE')) . ')';
+  //$file_size_fetch_limit = empty((int) get_option('SIRV_FETCH_MAX_FILE_SIZE')) ?  '' : ' (' . Utils::getFormatedFileSize(get_option('SIRV_FETCH_MAX_FILE_SIZE')) . ')';
+  //$file_size_fetch_limit = ' (' . Utils::getFormatedFileSize(32000000) . ')';
+  $file_size_fetch_limit = ' (32 MB)';
   $errData = array();
 
   global $wpdb;
@@ -4260,8 +4271,9 @@ function sirv_clear_cache_callback(){
   $posts_t = $wpdb->prefix . 'posts';
 
   if ($clean_cache_type == 'failed') {
-
     $result = $wpdb->delete($images_t, array('status' => 'FAILED'));
+  } else if ($clean_cache_type == 'synced') {
+    $result = $wpdb->delete($images_t, array('status' => 'SYNCED'));
   } else if ($clean_cache_type == 'garbage') {
     $atch_ids = $wpdb->get_results("SELECT attachment_id as attachment_id
                               FROM $images_t
@@ -4328,12 +4340,13 @@ function sirv_get_content(){
 
 
 function sirv_sort_content_data($data){
+  $restricted_folders = array('.Trash', '.processed', '.well-known', 'Shared', 'Profiles');
   $content = array('images' => array(), 'dirs' => array(), 'spins' => array(), 'files' => array(), 'videos' => array(), 'audio' => array(), 'models' => array());
   $files = array();
 
   foreach ($data as $file) {
     if ($file->isDirectory) {
-      if ((substr($file->filename, 0, 1) !== '.') && ($file->filename != 'Profiles')) $content['dirs'][] = $file;
+      if ( !in_array($file->filename, $restricted_folders) ) $content['dirs'][] = $file;
     } else {
       $files[] = $file;
     }
@@ -4465,16 +4478,18 @@ function sirv_upload_file_by_chanks_callback(){
   $tmp_dir = $wp_uploads_dir . '/tmp_sirv_chunk_uploads/';
   sirv_checkAndCreatekDir($tmp_dir);
 
+  $current_dir = stripslashes($_POST['currentDir']);
+  $current_dir = $current_dir == '/' ? '' : $current_dir;
+
   $filename = $_POST['partFileName'];
   $fileRelativePath = Utils::startsWith('/', $_POST['partFilePath']) ? substr($_POST['partFilePath'], 1) : $_POST['partFilePath'];
   $binPart = sirv_decode_chunk($_POST['binPart']);
   $partNum = $_POST['partNum'];
   $totalParts = $_POST['totalParts'];
-  $current_dir = $_POST['currentDir'] == '/' ? '' : $_POST['currentDir'];
   $totalOverSizedFiles =  intval($_POST['totalFiles']);
 
   $filePath = $tmp_dir . $filename;
-  $sirv_path = $current_dir . urlencode($fileRelativePath);
+  $sirv_path = urlencode($current_dir . $fileRelativePath);
 
   file_put_contents($filePath, $binPart, FILE_APPEND);
   chmod($filePath, 0777);
@@ -4797,18 +4812,10 @@ function sirv_check_connection(){
   $msg_ok = "Connection: OK";
   $msg_failed = 'Connection failed. Please check if you logged correctly here <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/account.php" target="_blank">Account settings</a>.';
 
-  $s3Client = sirv_getS3Client();
   $APIClient = sirv_getAPIClient();
-
-  $isS3Connection = $s3Client->checkCredentials();
   $isSirvConnection = $APIClient->checkCredentials();
 
-  if ($s3Client->authMessage) {
-    echo $s3Client->authMessage;
-    wp_die();
-  }
-
-  $message = ($isS3Connection && $isSirvConnection) ? $msg_ok : $msg_failed;
+  $message = $isSirvConnection ? $msg_ok : $msg_failed;
 
   echo $message;
 
@@ -4834,14 +4841,6 @@ function sirv_dismiss_notice(){
 }
 
 
-function sirv_test_s3_connection(){
-  $s3object = sirv_getS3Client();
-
-  $isConnection = $s3object->checkCredentials();
-
-  return array($isConnection, $s3object->authMessage);
-}
-
 //use ajax to delete files
 add_action('wp_ajax_sirv_delete_files', 'sirv_delete_files');
 function sirv_delete_files(){
@@ -4851,25 +4850,11 @@ function sirv_delete_files(){
 
   $filenames = $_POST['filenames'];
 
-  $s3Client = sirv_getS3Client();
   $APIClient = sirv_getAPIClient();
 
-  $s_msg = 'File(s) has been deleted';
-  $f_msg = 'File(s) hasn\'t been deleted';
+  $result = $APIClient->deleteFiles($filenames);
 
-  if (count($filenames) == 1) {
-    $filename = stripos($filenames[0], "/") == 0 ? substr($filenames[0], 1) : $filenames[0];
-    $filename = stripslashes($filename);
-
-    if ($APIClient->deleteFile($filename)) echo $s_msg;
-    else echo $f_msg;
-  } else {
-    if ($s3Client->deleteFiles($filenames)) {
-      echo $s_msg;
-    } else {
-      echo $f_msg;
-    }
-  }
+  echo json_encode($result);
 
   wp_die();
 }
@@ -4878,12 +4863,10 @@ function sirv_delete_files(){
 //use ajax to check if options is empty or not
 add_action('wp_ajax_sirv_check_empty_options', 'sirv_check_empty_options');
 function sirv_check_empty_options(){
-  $host = getValue::getOption('SIRV_AWS_HOST');
-  $bucket = getValue::getOption('SIRV_AWS_BUCKET');
-  $key = getValue::getOption('SIRV_AWS_KEY');
-  $secret_key = getValue::getOption('SIRV_AWS_SECRET_KEY');
+  $account_name = getValue::getOption('SIRV_ACCOUNT_NAME');
+  $cdn_url = getValue::getOption('SIRV_CDN_URL');
 
-  if (empty($host) || empty($bucket) || empty($key) || empty($secret_key)) {
+  if (empty($account_name) || empty($cdn_url)) {
     echo false;
   } else {
     echo true;
@@ -4955,7 +4938,7 @@ function sirv_send_message(){
   $name = $_POST['name'];
   $emailFrom = $_POST['emailFrom'];
 
-  $account_name = get_option('SIRV_AWS_BUCKET');
+  $account_name = get_option('SIRV_ACCOUNT_NAME');
   $storageInfo = sirv_getStorageInfo();
 
   $text .= PHP_EOL . 'Account name: ' . $account_name;
@@ -5172,11 +5155,9 @@ function sirv_disconnect(){
   update_option('SIRV_TOKEN_EXPIRE_TIME', '', 'no');
   update_option('SIRV_MUTE', '', 'no');
   update_option('SIRV_ACCOUNT_EMAIL', '');
+  update_option('SIRV_ACCOUNT_NAME', '');
   update_option('SIRV_STAT', '', 'no');
   update_option('SIRV_CDN_URL', '');
-  update_option('SIRV_AWS_BUCKET', '');
-  update_option('SIRV_AWS_KEY', '');
-  update_option('SIRV_AWS_SECRET_KEY', '');
 
   echo json_encode(array('disconnected' => 1));
 
@@ -5283,7 +5264,6 @@ function sirv_get_search_data(){
   $sirvAPIClient = sirv_getAPIClient();
 
   if(!empty($dir)){
-
     $res = $sirvAPIClient->search($c_query->getCompiledCurrentDirSearch($dir), $from);
   }else{
     $res = $sirvAPIClient->search($c_query->getCompiledGlobalSearch(), $from);
@@ -5312,12 +5292,11 @@ function sirv_copy_file(){
     return;
   }
 
-  $file_path = $_POST['filePath'];
-  $copy_path = $_POST['copyPath'];
+  $file_path = stripslashes($_POST['filePath']);
+  $copy_path = stripslashes($_POST['copyPath']);
 
-
-  $s3client = sirv_getS3Client();
-  $result = $s3client->copyFile($file_path, $copy_path);
+  $sirvAPIClient = sirv_getAPIClient();
+  $result = $sirvAPIClient->copyFile($file_path, $copy_path);
 
   echo json_encode(array('duplicated' => $result));
 

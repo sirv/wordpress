@@ -2,6 +2,7 @@ jQuery(function ($) {
     $(document).ready(function () {
 
         //------------globals vars--------------------
+        let isSyncing = false;
         let isNewAccount = false;
         let isThumbsAjax = false;
         let preventedSizes = '';
@@ -449,7 +450,7 @@ jQuery(function ($) {
 
         //type: ok, error, warning, info
         function showMessage(selector, message, msg_id, type='error'){
-            $(selector).append('<div id="'+ msg_id +'" class="sirv-message '+ type +'-message">'+ message +'</div>');
+            $(selector).append(`<div id="${msg_id}" class="sirv-message ${type}-message">${message}</div>`);
         }
 
 
@@ -500,48 +501,24 @@ jQuery(function ($) {
         }
 
 
-        $('.optimize-cache').on('click', optimizeCache);
-        function optimizeCache(){
-            let type = 'garbage';
-
-            $.ajax({
-                url: ajaxurl,
-                data: {
-                    action: 'sirv_clear_cache',
-                    clean_cache_type: type,
-                },
-                type: 'POST',
-                dataType: "json",
-                beforeSend: function () {
-                    hideMessage('sirv-sync-message');
-                    $('.sync-errors').hide();
-                    $('.sirv-discontinued-images span.sirv-traffic-loading-ico').show();
-                }
-            }).done(function (data) {
-                //debug
-                //console.log(data);
-
-                updateCacheInfo(data);
-                showMessage('.sirv-sync-messages', getMessage(type), 'sirv-sync-message', 'ok');
-                $('.sirv-discontinued-images span.sirv-traffic-loading-ico').hide();
-
-            }).fail(function (jqXHR, status, error) {
-                console.log("Error during ajax request: " + error);
-                showMessage('.sirv-sync-messages', "Error during ajax request: " + error, 'sirv-sync-message');
-                $('.sirv-discontinued-images span.sirv-traffic-loading-ico').hide();
-            });
+        function continueBtn(){
+            console.log("continueBtn run");
         }
 
 
-        $('.empty-cache').on('click', clearCache);
-        function clearCache(){
-            let type = $('input[name=empty_cache]:checked').val();
+        $(".sirv-clear-cache").on("click", clearCache);
+        function clearCache(e){
+            e.preventDefault();
 
-            if(type == 'all'){
-                let confirmResult = confirm('This will clear the database cache of image locations. Continue?');
-                if(!!confirmResult){
-                    deleteCache(type);
-                }
+            let type = $(this).attr('data-type');
+
+            if(type == 'all' || type == 'synced'){
+                sirvUIShowConfirmDialog(
+                    "Sirv plugin cache",
+                    "The plugin keeps track of which images have been copied to Sirv. Clearing the cache will mean slightly slower loading of images next time they are requested.",
+                    deleteCache,
+                    [type],
+                );
             }else{
                 deleteCache(type);
             }
@@ -549,6 +526,8 @@ jQuery(function ($) {
 
 
         function deleteCache(cacheType){
+            const spinnerSelector = getClearCacheSpinnerSelector(cacheType);
+
             $.ajax({
                 url: ajaxurl,
                 data: {
@@ -560,7 +539,7 @@ jQuery(function ($) {
                 beforeSend: function () {
                     hideMessage('sirv-sync-message');
                     $('.sync-errors').hide();
-                    $('.sirv-resync-button-block span').show();
+                    $(spinnerSelector).show();
                 }
             }).done(function (data) {
                 //debug
@@ -568,32 +547,56 @@ jQuery(function ($) {
 
                 updateCacheInfo(data);
                 showMessage('.sirv-sync-messages', getMessage(cacheType), 'sirv-sync-message', 'ok');
-                $('.sirv-resync-button-block span').hide();
+                $(spinnerSelector).hide();
 
             }).fail(function (jqXHR, status, error) {
                 console.log("Error during ajax request: " + error);
                 showMessage('.sirv-sync-messages', "Error during ajax request: " + error, 'sirv-sync-message');
-                $('.sirv-resync-button-block span').hide();
+                $(spinnerSelector).hide();
             });
         }
 
 
+        function getClearCacheSpinnerSelector(type){
+            let cssSelector = '';
+
+            switch (type) {
+                case 'synced':
+                    cssSelector = ".sirv-synced-clear-cache-action .sirv-traffic-loading-ico";
+                    break;
+
+                case 'failed':
+                    cssSelector = ".sirv-failed-clear-cache-action .sirv-traffic-loading-ico";
+                    break;
+
+                case 'garbage':
+                    cssSelector = '.sirv-discontinued-images span.sirv-traffic-loading-ico';
+                    break;
+
+                default:
+                    break;
+            }
+
+            return cssSelector;
+        }
+
+
         function getMessage(type){
-            let fMessage = 'Failed images have been deleted from Sirv cache';
-            let aMessage = 'Sirv cache has been cleared';
-            let mMessage = 'Your image cache has been cleared';
-            let gMessage = 'Old images cleared from Sirv plugin cache';
+            const sMessage = 'Synced images have been deleted from Sirv cache';
+            const fMessage = 'Failed images have been deleted from Sirv cache';
+            const aMessage = 'Sirv cache has been cleared';
+            const gMessage = 'Old images cleared from Sirv plugin cache';
             let message = '';
 
             switch (type) {
+                case 'synced':
+                    message = sMessage;
+                    break;
                 case 'failed':
                     message = fMessage;
                     break;
                 case 'all':
                     message = aMessage;
-                    break;
-                case 'master':
-                    message = mMessage;
                     break;
                 case 'garbage':
                     message = gMessage;
@@ -606,8 +609,9 @@ jQuery(function ($) {
         }
 
 
-        function updateReSyncBlockItems(data){
+        function updateCacheActionItems(data){
             if(!!data){
+                let isSynced  = data.SYNCED.count*1 > 0 ? true : false;
                 let isFailed  = data.FAILED.count*1 > 0 ? true : false;
                 let isGarbage = data.garbage_count*1 > 0 ? true : false;
 
@@ -619,46 +623,17 @@ jQuery(function ($) {
                     $('.sirv-discontinued-images').hide();
                 }
 
-                if(isFailed){
-                    $('.sirv-ec-failed-item input').prop('checked', true);
-                    $('.sirv-ec-failed-item input').prop('disabled', false)
-                    $('.sirv-ec-failed-item').removeClass('sirv-dis-text');
+                if(isSynced){
+                    $(".sirv-synced-clear-cache-action").show();
                 }else{
-                    $('.sirv-ec-failed-item input').prop('disabled', true);
-                    $('.sirv-ec-failed-item').addClass('sirv-dis-text');
-                    $('.sirv-ec-all-item input').prop('checked', true);
+                    $(".sirv-synced-clear-cache-action").hide();
                 }
 
-                /* if(!isGarbage && !isFailed){
-                    $('.sirv-ec-all-item input').attr('checked', true);
-                    $('.sirv-ec-garbage-item input').attr('disabled', true);
-                    $('.sirv-ec-failed-item input').attr('disabled', true);
-                    $('.sirv-ec-garbage-item').addClass('sirv-dis-text');
-                    $('.sirv-ec-failed-item').addClass('sirv-dis-text');
-                }else if(isGarbage && isFailed){
-                    $('.sirv-ec-garbage-item input').attr('checked', true);
-                    $('.sirv-ec-garbage-item input').attr('disabled', false);
-                    $('.sirv-ec-failed-item input').attr('disabled', false);
-                    $('.sirv-ec-garbage-item').removeClass('sirv-dis-text');
-                    $('.sirv-ec-failed-item').removeClass('sirv-dis-text');
-                }else if(isGarbage && !isFailed){
-                    $('.sirv-ec-garbage-item input').attr('checked', true);
-                    $('.sirv-ec-garbage-item input').attr('disabled', false);
-                    $('.sirv-ec-failed-item input').attr('disabled', true);
-                    $('.sirv-ec-garbage-item').removeClass('sirv-dis-text');
-                    $('.sirv-ec-failed-item').addClass('sirv-dis-text');
-                }else if(!isGarbage && isFailed){
-                    $('.sirv-ec-failed-item input').attr('checked', true);
-                    $('.sirv-ec-failed-item input').attr('disabled', false)
-                    $('.sirv-ec-garbage-item input').attr('disabled', true);
-                    $('.sirv-ec-garbage-item').addClass('sirv-dis-text');
-                    $('.sirv-ec-failed-item').removeClass('sirv-dis-text');
-                } */
-
-                //.sirv-ec-garbage-item
-                //.sirv-ec-failed-item
-                //.sirv-ec-all-item
-                //.sirv-old-cache-count
+                if(isFailed){
+                    $(".sirv-failed-clear-cache-action").show();
+                }else{
+                    $(".sirv-failed-clear-cache-action").hide();
+                }
             }
         }
 
@@ -686,12 +661,6 @@ jQuery(function ($) {
                 $('.sirv-progress__bar--line-queued').css('width', data.progress_queued + '%');
                 $('.sirv-progress__bar--line-failed').css('width', data.progress_failed + '%');
 
-                if(data.q*1 > 0){
-                    $('.sirv-resync-block').show();
-                }else{
-                    $('.sirv-resync-block').hide();
-                }
-
                 if(data.FAILED.count*1 > 0){
                     $('.failed-images-block').show();
                     $('.failed-images-block a').show();
@@ -701,15 +670,18 @@ jQuery(function ($) {
 
                 if ( (data.q*1 + data.FAILED.count*1) == data.total_count*1) {
                     if (data.FAILED.count * 1 == 0) {
-                        manageElement('input[name=sirv-sync-images]', disableFlag = true, text = '100% synced', button = true);
+                        //manageElement('input[name=sirv-sync-images]', disableFlag = true, text = '100% synced', button = true);
+                        setButtonSyncState('syncedAll');
                     } else {
-                        manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Synced', button = true);
+                        //manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Synced', button = true);
+                        setButtonSyncState("synced");
                     }
                 }else{
-                    manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                    //manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                    setButtonSyncState("sync");
                 }
 
-                updateReSyncBlockItems(data);
+                updateCacheActionItems(data);
             }
 
         }
@@ -843,7 +815,7 @@ jQuery(function ($) {
         }
 
 
-        $('.sirv-initialize-sync').on('click', initializeMassSync);
+        $(".sirv-sync-images").on("click", initializeMassSync);
         function initializeMassSync(){
             $.ajax({
                 url: ajaxurl,
@@ -854,13 +826,16 @@ jQuery(function ($) {
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function () {
+                    isSyncing = true;
                     $('.sirv-sync-messages').empty();
-                    manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Syncing', button = true);
+                    //manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Syncing', button = true);
+                    setButtonSyncState('syncing');
                     $('.sirv-progress__bar--line-complited').addClass('sirv-progress-bar-animated');
                     $('.sirv-queue').html('Processing (1/3): calculating folders...');
                     $('.sirv-processing-message').show();
                     $('.sync-errors').hide();
-                    $('.sirv-resync-block').hide();
+                    $(".sirv-synced-clear-cache-action").hide();
+                    $(".sirv-failed-clear-cache-action").hide();
                     $('.failed-images-block').hide();
                     $('.failed-images-block a').hide();
                 },
@@ -874,7 +849,9 @@ jQuery(function ($) {
                     showMessage('.sirv-sync-messages', "Please reload this page and try again.", 'sirv-sync-message', 'warning');
                     $('.sirv-processing-message').hide();
                     $('.sirv-progress__bar--line-complited').removeClass('sirv-progress-bar-animated');
-                    manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                    //manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                    setButtonSyncState("syncing");
+                    isSyncing = false;
                 }
 
             }).fail(function (jqXHR, status, error) {
@@ -883,13 +860,14 @@ jQuery(function ($) {
                 showMessage('.sirv-sync-messages', "Please reload this page and try again.", 'sirv-sync-message', 'warning');
                 $('.sirv-processing-message').hide();
                 $('.sirv-progress__bar--line-complited').removeClass('sirv-progress-bar-animated');
-                manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
-
+                //manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                setButtonSyncState("syncing");
+                isSyncing = false;
             });
         }
 
 
-        $('.sirv-sync-images').on('click', massSyncImages);
+       //$('.sirv-sync-images').on('click', massSyncImages);
         function massSyncImages(){
             $.ajax({
                 url: ajaxurl,
@@ -900,13 +878,7 @@ jQuery(function ($) {
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function(){
-                    /* $('.sirv-sync-messages').empty();
-                    manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Syncing', button = true);
-                    $('.sirv-progress__bar--line').addClass('sirv-progress-bar-animated');
-                    $('.sirv-processing-message').show();
-                    $('.sync-errors').hide();
-                    $('.sirv-resync-block').hide();
-                    $('.failed-images-count-row a').hide(); */
+                    //code here
                 },
             }).done(function(data){
                 //debug
@@ -929,6 +901,14 @@ jQuery(function ($) {
                     //$('.sirv-queue').html('Images in queue: ' + processing_q);
                     $('.sirv-queue').html('Processing (3/3): syncing images...');
 
+                    if(!!data && !isSyncing){
+                        setButtonSyncState('sync');
+                        $('.sirv-processing-message').hide();
+                        $('.sirv-progress__bar--line-complited').removeClass('sirv-progress-bar-animated');
+                        updateCacheActionItems(data);
+                        return;
+                    }
+
                     if (data.FAILED.count) {
                         $('.failed-images-block').show();
                         $('.failed-images-block a').show();
@@ -942,29 +922,92 @@ jQuery(function ($) {
                         return;
                     }
 
-                    if ((data.q * 1 + data.FAILED.count * 1 ) < data.total_count*1) {
+                    if ((data.q * 1 + data.FAILED.count * 1 ) < data.total_count * 1) {
                         massSyncImages();
                     } else {
                         $('.sirv-progress__bar--line-complited').removeClass('sirv-progress-bar-animated');
                         $('.sirv-processing-message').hide();
                         if (data.FAILED.count * 1 == 0){
-                            manageElement('input[name=sirv-sync-images]', disableFlag = true, text = '100% synced', button = true);
+                            //manageElement('input[name=sirv-sync-images]', disableFlag = true, text = '100% synced', button = true);
+                            setButtonSyncState("syncedAll");
                         }else{
-                            manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Synced', button = true);
+                            //manageElement('input[name=sirv-sync-images]', disableFlag = true, text = 'Synced', button = true);
+                            setButtonSyncState("synced");
                         }
-                        updateReSyncBlockItems(data);
-                        $('.sirv-resync-block').show();
+                        isSyncing = false;
+                        updateCacheActionItems(data);
                     }
                 }
             }).fail(function(jqXHR, status, error){
-                console.error("Error during ajax request: " + error);
-                showMessage('.sirv-sync-messages', "Error during ajax request: " + error, 'sirv-sync-message');
+                console.error("status: ", status);
+                console.error("Error message: " + error);
+                console.error("http code", `${jqXHR.status} ${jqXHR.statusText}`);
+
+                showAjaxErrorMessage(jqXHR, status, error, '.sirv-sync-messages', 'sirv-sync-message');
                 showMessage('.sirv-sync-messages', "Please reload this page and try again.", 'sirv-sync-message', 'warning');
                 $('.sirv-processing-message').hide();
                 $('.sirv-progress__bar--line-complited').removeClass('sirv-progress-bar-animated');
-                manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
-
+                //manageElement('input[name=sirv-sync-images]', disableFlag = false, text = 'Sync images', button = true);
+                setButtonSyncState("sync");
+                isSyncing = false;
             });
+        }
+
+
+        function showAjaxErrorMessage(jqXHR, status, error, selector, selectorId) {
+            const errorTitle = `<b>Error during ajax request</b>`;
+
+            let errorText = !!error
+                ? `<p>Error message: "${error}"</p>`
+                : `<p>Error message: Unknown error. If this continues, please inform the <a target="_blank" rel="noopener" href="https://sirv.com/help/support/#support">Sirv support team</a></p>\n`;
+
+            let httpCodeText = "";
+
+            if(jqXHR.status !== 200){
+                httpCodeText = `<p>HTTP CODE: ${jqXHR.status} ${jqXHR.statusText}</p>`;
+            }
+
+            showMessage(selector, `${errorTitle}<br>${errorText}${httpCodeText}`, selectorId);
+        }
+
+
+        function setButtonSyncState(state){
+            //state: sync, syncing, syncedAll
+            //manageElement('input[name=sirv-sync-images]', disableFlag = state, text = 'Syncing', button = true);
+
+            const buttonSelector = ".sirv-sync-images";
+            const $syncButtonEl = $(buttonSelector);
+
+            $syncButtonEl.off('click');
+
+            switch (state) {
+                case 'sync':
+                    $(buttonSelector).on("click", initializeMassSync);
+                    manageElement(buttonSelector, disableFlag = false, text = 'Sync items', button = true);
+                    break;
+                case 'syncing':
+                    $(buttonSelector).on("click", stopMassSync);
+                    manageElement(buttonSelector, disableFlag = false, text = 'Stop sync', button = true);
+                    break;
+
+                case 'stoping':
+                    manageElement(buttonSelector, disableFlag = true, text = 'Stoping', button = true);
+                    break;
+                case 'synced':
+                    manageElement(buttonSelector, disableFlag = true, text = 'Synced', button = true);
+                    break;
+                case 'syncedAll':
+                    //$(buttonSelector).on("click", stopMassSync);
+                    manageElement(buttonSelector, disableFlag = true, text = '100% synced', button = true);
+                    break;
+            }
+        }
+
+        //issue when last items syncing in the last porion and we press stop button. In this case all items will be synced and we need show 100% synced
+        function stopMassSync(){
+            isSyncing = false;
+            $(".sirv-queue").html("Processing: stopping sync process...");
+            setButtonSyncState('stoping');
         }
 
 
@@ -2097,7 +2140,9 @@ jQuery(function ($) {
             manageSelect('#sirv-shortcodes-profiles', '#sirv-shortcodes-profiles-val', false);
             manageSelect('#sirv-cdn-profiles', '#sirv-cdn-profiles-val', false);
             manageSelect('#sirv-woo-product-profiles', '#sirv-woo-product-profiles-val', false);
+            manageSelect('#sirv-woo-category-profiles', '#sirv-woo-category-profiles-val', false);
             manageSelect('#sirv-woo-product-mobile-profiles', '#sirv-woo-product-mobile-profiles-val', false);
+            //not profile
             manageSelect('#sirv-woo-product-ttl', '#sirv-woo-product-ttl-val', false);
         }
 
@@ -2111,6 +2156,10 @@ jQuery(function ($) {
 
         $('#sirv-woo-product-profiles').on('change', function () {
             manageSelect('#sirv-woo-product-profiles', '#sirv-woo-product-profiles-val', true);
+        });
+
+        $('#sirv-woo-category-profiles').on('change', function () {
+            manageSelect('#sirv-woo-category-profiles', '#sirv-woo-category-profiles-val', true);
         });
 
         $('#sirv-woo-product-mobile-profiles').on('change', function () {

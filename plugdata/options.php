@@ -40,11 +40,11 @@ function sirv_get_cache_count($isGarbage, $cacheInfo)
 }
 
 
-function sirv_get_sync_button_text($isSynced, $cacheInfo)
+function sirv_get_sync_button_text($isAllSynced, $cacheInfo)
 {
   $sync_button_text = 'Sync images';
 
-  if ($isSynced) {
+  if ($isAllSynced) {
     if ((int) $cacheInfo['FAILED']['count'] == 0 && (int) $cacheInfo['PROCESSING']['count'] == 0) {
       $sync_button_text = '100% synced';
     } else {
@@ -108,16 +108,17 @@ if ($sirvStatus) {
 
 
   $isOverCache = (int) $cacheInfo['q'] > (int) $cacheInfo['total_count'] ? true : false;
+  $isSynced = (int) $cacheInfo['SYNCED']['count'] > 0 ? true : false;
   $isFailed = (int) $cacheInfo['FAILED']['count'] > 0 ? true : false;
   $isGarbage = (int) $cacheInfo['garbage_count'] > 0 ? true : false;
 
   if ($isOverCache) $cacheInfo['q'] = sirv_get_cache_count($isGarbage, $cacheInfo);
 
 
-  $isSynced = ((int) $cacheInfo['q'] + (int) $cacheInfo['FAILED']['count'] + (int) $cacheInfo['PROCESSING']['count']) == (int) $cacheInfo['total_count'];
-  $is_sync_button_disabled = $isSynced ? 'disabled' : '';
-  //$sync_button_text = $isSynced ? ( (int) $cacheInfo['FAILED']['count'] == 0 && (int) $cacheInfo['PROCESSING']['count'] == 0 ) ? '100% synced' : 'Synced' : 'Sync images';
-  $sync_button_text = sirv_get_sync_button_text($isSynced, $cacheInfo);
+  $isAllSynced = ((int) $cacheInfo['q'] + (int) $cacheInfo['FAILED']['count'] + (int) $cacheInfo['PROCESSING']['count']) == (int) $cacheInfo['total_count'];
+  $is_sync_button_disabled = $isAllSynced ? 'disabled' : '';
+  //$sync_button_text = $isAllSynced ? ( (int) $cacheInfo['FAILED']['count'] == 0 && (int) $cacheInfo['PROCESSING']['count'] == 0 ) ? '100% synced' : 'Synced' : 'Sync images';
+  $sync_button_text = sirv_get_sync_button_text($isAllSynced, $cacheInfo);
   $is_show_resync_block = (int) $cacheInfo['q'] > 0 || $cacheInfo['FAILED']['count'] > 0 ? '' : 'display: none';
   $is_show_failed_block = (int) $cacheInfo['FAILED']['count'] > 0 ? '' : 'display: none';
 } else {

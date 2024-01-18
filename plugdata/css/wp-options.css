@@ -456,10 +456,18 @@ input.cmn-toggle-round:checked+label+span:before {
     font-weight: bold;
 }
 
+.sirv-message p:last-child {
+    margin-bottom: 0;
+}
+
 .sirv-message a{
     text-decoration: underline !important;
     color: inherit;
     cursor: pointer;
+}
+
+.sirv-message.error-message a::after{
+    filter: invert(1);
 }
 
 .sirv-message a:hover{
@@ -482,7 +490,8 @@ input.cmn-toggle-round:checked+label+span:before {
 }
 
 .error-message a:hover{
-    color: #7a7b7c;
+    /* color: #7a7b7c; */
+    color: #b76262;
 }
 
 .warning-message::before{
@@ -1130,7 +1139,6 @@ p.sirv-options-desc {
 
 .sirv-network-wrapper label,
 .sirv-miscellaneous-wrapper label,
-.sirv-resync-block label,
 .sirv-profiles-wrapper label,
 .sirv-woo-settings label {
     padding-bottom: 5px;
@@ -1695,9 +1703,20 @@ table.sirv-progress-data tr td:nth-child(3){
     padding-top: 12px;
 }
 
+.sirv-sync-controls{
+    display: flex;
+    flex-direction: row;
+
+}
+
 .sirv-sync-button-container input[type=button]{
+    min-width: 90px;
     border-radius: 15px;
     padding: 0 15px;
+}
+
+.sirv-sync-controls input[type=button] {
+    margin-right: 5px;
 }
 
 .sirv-progress-data__complited--text,

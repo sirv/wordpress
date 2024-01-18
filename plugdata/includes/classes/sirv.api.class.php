@@ -188,11 +188,30 @@ class SirvAPIClient
     }
 
 
-    public function deleteFile($filename)
+    public function copyFile($filePath, $copyFilePath)
     {
         $preCheck = $this->preOperationCheck();
         if (!$preCheck) {
             return false;
+        }
+
+        $res = $this->sendRequest(
+            "v2/files/copy?from=$filePath&to=$copyFilePath",
+            array(),
+            'POST'
+        );
+
+        return ($res && $res->http_code == 200);
+    }
+
+
+    public function deleteFile($filename, $isPreOperationCheck = true)
+    {
+        if( $isPreOperationCheck ){
+            $preCheck = $this->preOperationCheck();
+            if (!$preCheck) {
+                return false;
+            }
         }
 
         $res = $this->sendRequest(
@@ -202,6 +221,30 @@ class SirvAPIClient
         );
 
         return ($res && $res->http_code == 200);
+    }
+
+
+    public function deleteFiles($files){
+        $preCheck = $this->preOperationCheck();
+        if (!$preCheck) {
+            return false;
+        }
+
+        $delete_count = 0;
+        $undelete_count = 0;
+
+        for( $i=0; $i < count($files); $i++ ){
+            $result = $this->deleteFile(stripslashes($files[$i]), false);
+
+            if( $result ){
+                $delete_count++;
+            }else{
+                $undelete_count++;
+            }
+        }
+
+        return array("delete" => $delete_count, "undelete" => $undelete_count);
+
     }
 
 
@@ -231,7 +274,7 @@ class SirvAPIClient
         $newFilePath = rawurlencode(rawurldecode(stripcslashes($newFilePath)));
 
         $res = $this->sendRequest(
-            "v2/files/rename?from={$oldFilePath}&to={$newFilePath}",
+            "v2/files/rename?from=$oldFilePath&to=$newFilePath",
             array(),
             'POST'
         );
@@ -594,10 +637,7 @@ class SirvAPIClient
                 if ($res_alias && $res_alias->http_code == 200 &&
                     !empty($res_alias->result) && !empty($res_alias->result->alias)) {
                     $this->updateParentClassSettings(array(
-                        'SIRV_AWS_BUCKET' => $res_alias->result->alias,
-                        'SIRV_AWS_KEY' => $res_user->result->email,
-                        'SIRV_AWS_SECRET_KEY' => $res_user->result->s3Secret,
-                        //'SIRV_AWS_HOST' => 's3.sirv.com'
+                        'SIRV_ACCOUNT_NAME' => $res_alias->result->alias,
                     ));
                     return true;
                 } else {
@@ -609,9 +649,7 @@ class SirvAPIClient
             return true;
         } else {
             $this->updateParentClassSettings(array(
-                'SIRV_AWS_BUCKET' => '',
-                'SIRV_AWS_KEY' => '',
-                'SIRV_AWS_SECRET_KEY' => '',
+                'SIRV_ACCOUNT_NAME' => '',
             ));
             return false;
         }
@@ -640,9 +678,7 @@ class SirvAPIClient
         $this->clientId = '';
         $this->clientSecret = '';
         $this->updateParentClassSettings(array(
-            'SIRV_AWS_BUCKET' => '',
-            'SIRV_AWS_KEY' => '',
-            'SIRV_AWS_SECRET_KEY' => '',
+            'SIRV_ACCOUNT_NAME' => '',
         ));
     }
 
@@ -899,10 +935,12 @@ class SirvAPIClient
         return $content->result;
     }
 
+
     public function getLastResponse()
     {
         return $this->lastResponse;
     }
+
 
     public function muteRequests($timestamp, $errorMessage)
     {
@@ -910,10 +948,12 @@ class SirvAPIClient
         update_option('SIRV_MUTE_ERROR_MESSAGE', $errorMessage, 'no');
     }
 
+
     public function isMuted()
     {
         return ((int)get_option('SIRV_MUTE') > time());
     }
+
 
     private function sendRequest($url, $data, $method = 'POST', $token = '', $headers = null, $isFile = false)
     {

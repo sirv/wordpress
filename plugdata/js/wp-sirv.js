@@ -449,6 +449,13 @@ jQuery(function($){
         }
 
 
+        function hasHiddenFilesData(data){
+            const audioLen = data.content.audio.length;
+            const filesLen = data.content.files.length;
+            return audioLen + filesLen > 0;
+        }
+
+
         function renderEmptyFolder(){
             let html = '';
             if(noResults){
@@ -549,12 +556,10 @@ jQuery(function($){
 
                 for (let i = 0; i < dirs.length; i++) {
                     let dir = dirs[i];
-                    if (!dir.filename.startsWith('.')) {
-                        dir.dirname = commonData.current_dir;
-                        let dt = getItemData('dir', commonData.sirv_url, dir, 'g_content');
-                        let elemBlock = getItemBlock(dt);
-                        documentFragment.append(elemBlock);
-                    }
+                    dir.dirname = commonData.current_dir;
+                    let dt = getItemData('dir', commonData.sirv_url, dir, 'g_content');
+                    let elemBlock = getItemBlock(dt);
+                    documentFragment.append(elemBlock);
                 }
                 $('#dirs').append(documentFragment);
             } else{
@@ -728,23 +733,32 @@ jQuery(function($){
             let bcImg = "width:128px; height:128px; background-image: url(" + getItemPlaceHolder(data.type) + "); background-position: 50% 50%; background-repeat: no-repeat; background-size: contain;";
             let selectionButton = (data.type != 'dir') ? '<div class="sirv-item-selection dashicons"></div>' : '';
             let menuButton = (data.type != 'dir') ? '<div class="sirv-item-menu-actions dashicons"></div>' : '';
-            let title_path = receiveContentType == 's_content' ? 'title="'+ data.filename +'" ' : '';
+            let titlePath = receiveContentType == 's_content' ? 'title="'+ data.filename +'" ' : '';
             let dir = data.dirname == '/' ? data.dirname : data.dirname + '/';
             let itemMeta = getItemMeta(data);
             let imgWidth = !!itemMeta.width ? ' data-width="' + itemMeta.width +'" ' : '';
             let imgHeight = !!itemMeta.height ? ' data-height="' + itemMeta.height +'" ' : '';
 
             let sirvItem = $(
-                '<div class="sirv-item">' +
-                    '<div class="sirv-item-body" '+ title_path +' data-id="'+ md5('//'+ data.imageUrl) +'"data-type="'+ data.type +'" data-dir-link="'+ encodeURIComponent(data.filename) +'" data-dir="'+ dir +'" data-content-type="'+ data.contentType +'">' +
-                        selectionButton + menuButton +
-                        '<div class="sirv-item-icon" style="'+ bcImg +'" data-original="'+ data.fullImageUrl +'"></div>' +
-                        '<div class="sirv-item-desc">' +
-                            '<div class="sirv-item-name-container sirv-overflow-ellipsis sirv-no-select-text" title="'+ data.basename +'">'+ data.basename + '</div>'+
-                            '<div class="sirv-item-meta-container sirv-overflow-ellipsis sirv-no-select-text" title="'+ itemMeta.title +'"'+ imgWidth + imgHeight +'>' + itemMeta.main +'</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>'
+                `<div class="sirv-item">
+                    <div
+                        class="sirv-item-body"
+                        ${titlePath}
+                        data-item-id="${md5('//'+ data.imageUrl)}"
+                        data-item-type="${data.type}"
+                        data-item-sirv-path="${encodeURIComponent(data.filename)}"
+                        data-dir="${dir}"
+                        data-item-title="${escapeHtml(data.basename)}"
+                        data-content-type="${data.contentType}">
+                            ${selectionButton}
+                            ${menuButton}
+                            <div class="sirv-item-icon" style="${bcImg}" data-item-url="${data.fullImageUrl}"></div>
+                            <div class="sirv-item-desc">
+                                <div class="sirv-item-name-container sirv-overflow-ellipsis sirv-no-select-text" title="${data.basename}">${data.basename}</div>
+                                <div class="sirv-item-meta-container sirv-overflow-ellipsis sirv-no-select-text" title="${itemMeta.title}" ${imgWidth} ${imgHeight}>${itemMeta.main}</div>
+                            </div>
+                    </div>
+                </div>`
             );
 
             return sirvItem;
@@ -928,13 +942,13 @@ jQuery(function($){
 
         function loadImage(elem, imgParams) {
             let $imgElem = $('.sirv-item-icon', elem);
-            let src = $imgElem.attr('data-original');
+            let src = $imgElem.attr('data-item-url');
 
-            src = src.replace('(', '%28')
-                .replace(')', '%29')
-                .replace('#', '%23')
-                .replace('?', '%3F')
-                .replace("'", '%27');
+            src = src.replaceAll('(', '%28')
+                .replaceAll(')', '%29')
+                .replaceAll('#', '%23')
+                .replaceAll('?', '%3F')
+                .replaceAll("'", '%27');
 
             let newImg = new Image();
             let attemptsToLoadImg = 2;
@@ -974,7 +988,7 @@ jQuery(function($){
 
         function renderBreadcrambs(currentDir){
             if(currentDir != "/"){
-                $('<li><span class="breadcrumb-text">You are here: </span><a href="#" class="sirv-breadcramb-link" data-dir-link="/">Home</a></li>').appendTo('.breadcrumb');
+                $('<li><span class="breadcrumb-text">You are here: </span><a href="#" class="sirv-breadcramb-link" data-item-sirv-path="/">Home</a></li>').appendTo('.breadcrumb');
                 let dirs = currentDir.split('/').slice(1);
                 let temp_dir = "";
                 for(let i=0; i < dirs.length; i++){
@@ -982,9 +996,8 @@ jQuery(function($){
                     if(i+1 == dirs.length){
                         $('<li><span>' + dirs[i] + '</span></li>').appendTo('.breadcrumb');
                     }else{
-                        $('<li><a href="#" class="sirv-breadcramb-link" data-dir-link="' + encodeURIComponent(temp_dir) + '">' + dirs[i] + '</a></li>').appendTo('.breadcrumb');
+                        $('<li><a href="#" class="sirv-breadcramb-link" data-item-sirv-path="' + encodeURIComponent(temp_dir) + '">' + dirs[i] + '</a></li>').appendTo('.breadcrumb');
                     }
-
                 }
             }else{
                 $('<li><span class="breadcrumb-text">You are here: </span>Home</li>').appendTo('.breadcrumb')
@@ -996,6 +1009,14 @@ jQuery(function($){
             let cDir = currentDir == '/' ? currentDir : currentDir.substr(1) + '/';
             $('#filesToUpload').attr('data-current-folder', cDir);
             $('.sirv-drop-to-folder').text(currentDir);
+        }
+
+
+        function getCurrentDir(){
+            let currentDir = $('#filesToUpload').attr('data-current-folder');
+            let dir = currentDir == '/' ? currentDir : '/' + currentDir.substring(0, currentDir.length -1);
+
+            return dir;
         }
 
 
@@ -1149,14 +1170,6 @@ jQuery(function($){
         }
 
 
-        function getCurrentDir(){
-            let currentDir = $('#filesToUpload').attr('data-current-folder');
-            let dir = currentDir == '/' ? currentDir : '/' + currentDir.substring(0, currentDir.length -1);
-
-            return dir;
-        }
-
-
         function getElOffset(el) {
             const rect = el.getBoundingClientRect();
             return {
@@ -1174,8 +1187,8 @@ jQuery(function($){
 
             deactivateActionMenu();
 
-            if(!!$(this).attr('data-type')){
-                let type = $(this).attr('data-type');
+            if(!!$(this).attr('data-item-type')){
+                let type = $(this).attr('data-item-type');
                 let position = $(this).attr("data-menu-position") || false;
                 renderActionMenu(e, type, $(this), position);
             }else{
@@ -1189,7 +1202,7 @@ jQuery(function($){
             e.stopPropagation();
 
             let $item = $(this).parent();
-            let type = $item.attr('data-type');
+            let type = $item.attr('data-item-type');
 
             renderActionMenu(e, type, $item);
         }
@@ -1200,17 +1213,16 @@ jQuery(function($){
             let left = parseInt(e.pageX);
 
             if (!!type && type !== 'uploadButton') {
-                let dataOrig = $('.sirv-item-icon', $item).attr('data-original') || '';
-                let dataDir = $item.attr('data-dir');
-                let dirLink = $item.attr('data-dir-link');
-                let delLink = dataDir + basename(dataOrig);
+                let url = $('.sirv-item-icon', $item).attr('data-item-url') || '';
+                let itemSirvPath = $item.attr('data-item-sirv-path');
+                let title = $item.attr("data-item-title");
 
-                dataOrig = dataOrig.replace('#', '%23').replace('?', '%3F');
+                url = url.replace('#', '%23').replace('?', '%3F');
 
-                $menu.attr('data-original', dataOrig);
-                $menu.attr('data-delete-link', delLink);
-                $menu.attr('data-dir-link', dirLink);
-                $menu.attr('data-type', type);
+                $menu.attr('data-item-url', url);
+                $menu.attr('data-item-sirv-path', itemSirvPath);
+                $menu.attr('data-item-type', type);
+                $menu.attr('data-item-title', title);
             }
 
             let items = [
@@ -1320,9 +1332,9 @@ jQuery(function($){
             e.stopPropagation();
 
             let $menu = $('.sirv-dropdown');
-            let fName = basename($menu.attr('data-original'));
+            let fName = basename($menu.attr('data-item-url'));
 
-            copyToClipboard($menu.attr('data-original'));
+            copyToClipboard($menu.attr('data-item-url'));
             deactivateActionMenu();
 
             /* toastr.options = {
@@ -1356,33 +1368,46 @@ jQuery(function($){
             let isClearParams = true;
 
             let $menu = $('.sirv-dropdown');
-            let type = $menu.attr('data-type');
-            let delLink = type == 'dir' ? $menu.attr('data-delete-link') + '/' : $menu.attr('data-delete-link');
-
-            delLink = encodeItemPath(delLink);
-            //console.log(delLink);
+            let type = $menu.attr('data-item-type');
+            let delLink = $menu.attr("data-item-sirv-path");
 
             if(type == 'dir'){
-                let dirLink = $menu.attr('data-dir-link');
-                getContentFromSirv(dirLink, false, deleteEmptyFolder);
+                //get content for folder that want to delete to check if it's empty
+                getContentFromSirv(delLink, false, deleteEmptyFolder);
                 isClearParams = false;
-            }else deleteSelectedImages(delLink);
+            }else{
+                deleteSelectedImages(delLink);
+            }
 
             deactivateActionMenu(isClearParams);
-
         }
 
 
         function deleteEmptyFolder(data){
-            if (isEmptyContentData(data)){
-                let $menu = $('.sirv-dropdown');
-                let delLink = $menu.attr('data-delete-link') + '/';
+            const isEmptyMedia = isEmptyContentData(data);
+            const hasHiddenFiles = hasHiddenFilesData(data);
 
-                delLink = encodeItemPath(delLink);
+            if (isEmptyMedia && !hasHiddenFiles){
+                const $menu = $('.sirv-dropdown');
+                const delLink = $menu.attr("data-item-sirv-path");
 
                 deleteSelectedImages(delLink);
             } else{
-                alert('Folder cannot be deleted because it contains files. Delete folder contents first.');
+                let msg = '';
+
+                if(!isEmptyMedia && !hasHiddenFiles){
+                    msg = 'Folder cannot be deleted because it contains files. Delete the folder contents first.'
+                }
+
+                if(isEmptyMedia && hasHiddenFiles){
+                    msg = 'Folder cannot be deleted because it contains files that can\'t be shown here. Please use my.sirv.com to manage this folder.';
+                }
+
+                if(!isEmptyMedia && hasHiddenFiles){
+                    msg = 'Folder cannot be deleted, because includes hidden files that cannot be deleted here. Please use my.sirv.com to manage folder.';
+                }
+
+                toastr.warning(msg, '', {preventDuplicates: true, timeOut: 10000, positionClass: "toast-top-center"});
             }
         }
 
@@ -1392,12 +1417,12 @@ jQuery(function($){
             e.stopPropagation();
 
             let $menu = $('.sirv-dropdown');
-            let dataOrig = $menu.attr('data-original');
-            let fName = basename(dataOrig);
+            let url = $menu.attr('data-item-url');
+            let fName = basename(url);
 
 
             let a = document.createElement('a');
-            a.setAttribute('href', dataOrig + '?dl&format=original&quality=0');
+            a.setAttribute('href', url + '?dl&format=original&quality=0');
             a.setAttribute('download', fName);
 
             a.style.display = 'none';
@@ -1415,9 +1440,9 @@ jQuery(function($){
 
 
             let $menu = $('.sirv-dropdown');
-            let dataOrigUrl = $menu.attr('data-original');
+            let url = $menu.attr('data-item-url');
 
-            window.open(dataOrigUrl, '_blank');
+            window.open(url, '_blank');
 
             deactivateActionMenu();
         }
@@ -1465,19 +1490,22 @@ jQuery(function($){
             e.stopPropagation();
 
             let $menu = $('.sirv-dropdown');
-            let filePath = $menu.attr('data-delete-link');
-            let type = $menu.attr('data-type');
+            const filePath = $menu.attr('data-item-sirv-path');
+            const decodedFilePath = decodeURIComponent(filePath);
 
-            let basePath = basepath(filePath);
+
+            let type = $menu.attr('data-item-type');
+
+            let basePath = basepath(decodedFilePath);
             let ext = getExt(filePath);
-            let baseNameWithoutExt = decodeURI(basenameWithoutExt(filePath));
+            let baseNameWithoutExt = basenameWithoutExt(decodedFilePath);
             let searchPattern = new RegExp(baseNameWithoutExt +"\\s\\(copy(?:\\s\\d)*?\\)\\." + ext, 'i');
 
             let countCopies = searchFileCopies(type, searchPattern);
 
             let copyNum = countCopies > 0 ? ' ' + (countCopies) : '';
             let copyPattern = ' (copy'+ copyNum +').';
-            let copyPath = encodeURI(basePath + baseNameWithoutExt + copyPattern + ext);
+            let copyPath = encodeURIComponent(basePath + baseNameWithoutExt + copyPattern + ext);
 
             duplicateFile(filePath, copyPath);
 
@@ -1490,21 +1518,24 @@ jQuery(function($){
             e.stopPropagation();
 
             let $menu = $('.sirv-dropdown');
-            let newFileName = encodeURI(window.prompt("Enter new file name:", ""));
+            let title = htmlDecode($menu.attr("data-item-title"));
+            const itemType = $menu.attr('data-item-type');
+            const fileExt = itemType === "dir" ? '' : getExt(title);
+            const filePath = $menu.attr('data-item-sirv-path');
+            const decodeFilePath = decodeURIComponent($menu.attr('data-item-sirv-path'));
+            deactivateActionMenu();
 
+            title = !!fileExt ? basenameWithoutExt(title) : title;
+
+            const newFileName = window.prompt("Enter new file name:", title);
 
             if (!!newFileName) {
-                let filePath = $menu.attr('data-delete-link');
-                let itemType = $menu.attr('data-type');
-                filePath = encodeURI(basepath(filePath)) + basename(filePath);
-                let basePath = basepath(filePath);
-                let ext = itemType == 'dir' ? '' : '.' + getExt(filePath);
-                let newFilePath = basePath + newFileName + ext;
+                let basePath = basepath(decodeFilePath);
+                let ext = itemType == 'dir' ? '' : '.' + fileExt;
+                let newFilePath = encodeURIComponent(basePath + newFileName + ext);
 
                 renameFile(filePath, newFilePath);
             }
-
-            deactivateActionMenu();
         }
 
 
@@ -1530,7 +1561,7 @@ jQuery(function($){
                 dataType: 'json',
             }
             //sendAjaxRequest(AjaxData, processingOverlay=false, showingArea=false, isDebug=false, doneFn=false, beforeSendFn=false, errorFn=false)
-            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false, function (data) {
+            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = true, function (data) {
                 if(!!data){
                     if(data.duplicated){
                         getContentFromSirv(window.sirvGetPath);
@@ -1592,10 +1623,9 @@ jQuery(function($){
 
 
         function clearMenuData($menu){
-            $menu.attr('data-original', '');
-            $menu.attr('data-delete-link', '');
-            $menu.attr('data-dir', '');
-            $menu.attr('data-dir-link', '');
+            $menu.attr('data-item-url', '');
+            $menu.attr('data-item-sirv-path', '');
+            $menu.attr('data-item-title', '');
         }
 
 
@@ -1639,8 +1669,8 @@ jQuery(function($){
             $(window).on('resize', reCalcSearchMenuPosition);
             $('.sirv-search-in-dir').on('click', searchInDir);
             $('.sirv-breadcramb-link').on('click', beforeGetContent);
-            $('.sirv-item-body[data-type=dir]').on('click', beforeGetContent);
-            $('.sirv-item-body:not([data-type=dir])').on('click', function(event){selectImagesNew(event, $(this))});
+            $('.sirv-item-body[data-item-type=dir]').on('click', beforeGetContent);
+            $('.sirv-item-body:not([data-item-type=dir])').on('click', function(event){selectImages(event, $(this))});
             $('.insert').on('click', insert);
             $('.sirv-create-gallery').on('click', createGallery);
             $('.clear-selection').on('click', clearSelection);
@@ -1680,8 +1710,8 @@ jQuery(function($){
             $('.insert').off('click', insert);
             $('.sirv-create-gallery').off('click', createGallery);
             $('.sirv-breadcramb-link').off('click', beforeGetContent);
-            $('.sirv-item-body[data-type=dir]').off('click', beforeGetContent);
-            $('.sirv-item-body:not([data-type=dir])').off('click');
+            $('.sirv-item-body[data-item-type=dir]').off('click', beforeGetContent);
+            $('.sirv-item-body:not([data-item-type=dir])').off('click');
             $('.clear-selection').off('click');
             $('.delete-selected-images').off('click');
             $('.create-folder').off('click');
@@ -1710,7 +1740,7 @@ jQuery(function($){
 
 
         function beforeGetContent() {
-            let dataLink = $(this).attr('data-dir-link');
+            let dataLink = $(this).attr('data-item-sirv-path');
             window.sirvViewerPath = dataLink;
             getContentFromSirv(dataLink);
         }
@@ -1832,12 +1862,11 @@ jQuery(function($){
             let groupedImages = groupedFiles(files, maxFileSize, maxFilesCount, sirvFileSizeLimit);
             let countFiles = files.length;
 
-            let currentDir = encodeURI($('#filesToUpload').attr('data-current-folder'));
+            let currentDir = htmlDecode($('#filesToUpload').attr('data-current-folder'));
 
             //clear progress bar data before start new upload
             $('.sirv-progress-bar').css('width', '0');
             $('.sirv-progress-text').html('');
-            //$('.sirv-progress-text').html('<span class="sirv-traffic-loading-ico sirv-no-lmargin"></span>processing...');
             $('.sirv-progress-text').html('<span class="sirv-ajax-gif-animation sirv-no-lmargin"></span>processing...');
 
             //clear list of files
@@ -2211,16 +2240,20 @@ jQuery(function($){
 
 
         function basename(path,prefix='/') {
-                path = path.split(prefix);
+            path = path.split(prefix);
 
-                return path[ path.length - 1 ];
-            }
+            return path[ path.length - 1 ];
+        }
 
 
-        function basepath(path){
-            fileName = basename(path);
+        function basepath(path, prefix='/'){
+            let pathParts = path.split(prefix);
 
-            return path.replace(fileName, '');
+            let basePath = pathParts.slice(0, pathParts.length - 1).join(prefix)
+
+            basePath = basePath === '/' ? basePath : `${basePath}/`;
+
+            return basePath;
         }
 
 
@@ -2254,17 +2287,23 @@ jQuery(function($){
         }
 
 
-    function escapeHtml(text) {
-        var map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
+        function escapeHtml(text) {
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
 
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+
+        function htmlDecode(input) {
+            var doc = new DOMParser().parseFromString(input, "text/html");
+            return doc.documentElement.textContent;
+        }
 
 
         function deleteSelectedImages(file=''){
@@ -2274,126 +2313,84 @@ jQuery(function($){
                 filenamesArray.push(file);
             }else{
                 let selectedImages = $('.selected-miniature-img');
-                if (selectedImages.length > 1) {
                     $.each(selectedImages, function (index, value) {
-                        //filenamesArray.push(encodeURI($(value).attr('data-dir')) + basename($(value).attr('data-original')));
-                        filenamesArray.push( escapeXMLChars($(value).attr('data-dir') + decodeURI(basename($(value).attr('data-original')))) );
+                        //filenamesArray.push( escapeXMLChars($(value).attr('data-dir') + decodeURI(basename($(value).attr('data-item-url')))) );
+                        //filenamesArray.push( escapeXMLChars($(value).attr('data-dir') + basename($(value).attr('data-item-url'))) );
+                        filenamesArray.push( $(value).attr('data-item-sirv-path') );
                     });
-                } else {
-                    let value = selectedImages[0];
-                    //filenamesArray.push(encodeURI($(value).attr('data-dir')) + basename($(value).attr('data-original')));
-                    filenamesArray.push(encodeItemPath($(value).attr('data-dir') + basename($(value).attr('data-original'))));
-                }
             }
 
             let data = {
                         action: 'sirv_delete_files',
                         filenames: filenamesArray
             }
+
             let ajaxData = {
                             url: ajaxurl,
                             type: 'POST',
+                            dataType: 'json',
                             data: data
             }
 
-            sendAjaxRequest(ajaxData, processingOverlay='.loading-ajax', showingArea=false, isdebug=true, function(response){
+            sendAjaxRequest(ajaxData, processingOverlay='.loading-ajax', showingArea=false, isdebug=false, function(response){
+                if(response.delete > 0){
+                    toastr.success(getDeleteFilesMsg(response.delete), '', {preventDuplicates: true, timeOut: 2000, positionClass: "toast-top-center"});
+                }
+
+                if(response.undelete > 0){
+                    toastr.error(getDeleteFilesMsg(response.undelete, ' not'), '', {preventDuplicates: true, timeOut: 2000, positionClass: "toast-top-center"});
+                }
                 getContentFromSirv(window.sirvGetPath);
                 if(!!!file) clearSelection();
-            });
+            },
+            null,
+            function(jqXHR, status, error){
+                toastr.error(`Ajax error: ${error}`, '', {preventDuplicates: true, timeOut: 2000, positionClass: "toast-top-center"});
+            }
+            );
         }
 
 
-        function selectImages(event, $object){
-
-            function addMiniatures(object){
-                let dir = $object.attr('data-dir');
-                dir = dir.startsWith('/') && dir.length > 1 ? dir.substring(1, dir.length) : dir;
-                $('.selected-miniatures-container').append('<li class="selected-miniature"><img class="selected-miniature-img" data-id="'+ object.attr('data-id') +
-                    '" data-original="'+ object.attr('data-original') +'" data-type="'+ object.attr('data-type') +
-                    '" data-dir="'+ dir +'"'+
-                    ' data-caption="" src="' + object.attr('data-original') + getItemParams(object.attr('data-type'), 40) +'"' +' /></li>\n');
-            }
-
-            function removeMiniatures(object){
-                $($('img[data-id='+ object.attr('data-id')+ ']').closest('li.selected-miniature')).remove();
-            }
-
-            let curr = -1;
-
-            if(event.ctrlKey){
-                event.preventDefault();
-            }
-
-            if(event.shiftKey){
-                event.preventDefault();
-
-                curr = $('.sirv-image').index($object);
-                if(prev > -1){
-                        let miniaturesArray= [];
-                        $('.selected-miniature-img').each(function(){
-                            miniaturesArray.push($(this).attr('data-id'));
-                        });
-                    $('.sirv-image').slice(Math.min(prev, curr), 1 + Math.max(prev, curr)).each(function(){
-                        if ($.inArray($(this).attr('data-id'), miniaturesArray) == -1){
-                            $(this).addClass('selected');
-                            $(this).closest('li').addClass('selected');
-                            addMiniatures($(this));
-                        }
-                    });
-                }
-            }else{
-                curr = prev = $('.sirv-image').index($object);
-
-                if($object.hasClass('selected')){
-                    $object.removeClass('selected');
-                    $object.closest('li').removeClass('selected');
-                    removeMiniatures($object);
-
-                } else{
-                    $object.addClass('selected');
-                    $object.closest('li').addClass('selected');
-                    addMiniatures($object);
-                }
-            }
-
-            if ($('.selected-miniature-img').length > 0){
-                $('.selection-content').addClass('items-selected');
-                $('.count').text($('.selected-miniature-img').length + " selected");
-            } else $('.selection-content').removeClass('items-selected');
-        };
+        function getDeleteFilesMsg(count, not=''){
+            return count == 1
+                ? `${count} file has${not} been deleted`
+                : `${count} files have${not} been deleted`;
+        }
 
 
-        function getItemSrc(type, originalPath, size){
+        function getItemSrc(type, url, size){
             const noImagesItems = ['model', 'audio', 'file'];
 
-            return $.inArray(type, noImagesItems) != -1 ? getItemPlaceHolder(type) : originalPath + getItemParams(type, size);
+            return $.inArray(type, noImagesItems) != -1 ? getItemPlaceHolder(type) : url + getItemParams(type, size);
         }
 
 
-        function selectImagesNew(event, $obj) {
+        function selectImages(event, $obj) {
 
             function addMiniatures($obj) {
                 let data = {
-                    id: $obj.attr('data-id'),
-                    original: $('.sirv-item-icon', $obj).attr('data-original'),
+                    id: $obj.attr('data-item-id'),
+                    url: $('.sirv-item-icon', $obj).attr('data-item-url'),
                     dir: $obj.attr('data-dir'),
-                    type: $obj.attr('data-type'),
+                    itemSirvPath: $obj.attr('data-item-sirv-path'),
+                    type: $obj.attr('data-item-type'),
                     width: $('.sirv-item-meta-container', $obj).attr('data-width') || 0,
                     height: $('.sirv-item-meta-container', $obj).attr('data-height') || 0,
                 }
 
                 $('.selected-miniatures-container').append(
                     '<li class="selected-miniature">'+
-                        '<img class="selected-miniature-img" data-id="' + data.id +
-                        '" data-original="' + data.original + '" data-type="' + data.type +
+                        '<img class="selected-miniature-img" data-item-id="' + data.id +
+                        '" data-item-url="' + data.url + '" data-item-type="' + data.type +
                         '" data-dir="' + data.dir + '"' +
-                        ' data-caption="" src="' + getItemSrc(data.type, data.original, 40) +'"' +
+                        '" data-item-sirv-path="' + data.itemSirvPath + '"' +
+                        ' data-caption="" src="' + getItemSrc(data.type, data.url, 40) +'"' +
                         ' data-width="'+ data.width +'"'+' data-height="'+ data.height +'"'+
                     ' /></li>\n');
             }
 
             function removeMiniatures($obj) {
-                $($('img[data-id=' + $obj.attr('data-id') + ']').closest('li.selected-miniature')).remove();
+                $($('img[data-item-id=' + $obj.attr('data-item-id') + ']').closest('li.selected-miniature')).remove();
             }
 
             let curr = -1;
@@ -2405,21 +2402,21 @@ jQuery(function($){
             if (event.shiftKey) {
                 event.preventDefault();
 
-                curr = $('.sirv-item-body:not([data-type=dir]').index($obj);
+                curr = $('.sirv-item-body:not([data-item-type=dir]').index($obj);
                 if (prev > -1) {
                     let miniaturesArray = [];
                     $('.selected-miniature-img').each(function () {
-                        miniaturesArray.push($(this).attr('data-id'));
+                        miniaturesArray.push($(this).attr('data-item-id'));
                     });
-                    $('.sirv-item-body:not([data-type=dir]').slice(Math.min(prev, curr), 1 + Math.max(prev, curr)).each(function () {
-                        if ($.inArray($(this).attr('data-id'), miniaturesArray) == -1) {
+                    $('.sirv-item-body:not([data-item-type=dir]').slice(Math.min(prev, curr), 1 + Math.max(prev, curr)).each(function () {
+                        if ($.inArray($(this).attr('data-item-id'), miniaturesArray) == -1) {
                             $(this).addClass('sirv-item-body--selected');
                             addMiniatures($(this));
                         }
                     });
                 }
             } else {
-                curr = prev = $('.sirv-item-body:not([data-type=dir]').index($obj);
+                curr = prev = $('.sirv-item-body:not([data-item-type=dir]').index($obj);
 
                 if ($obj.hasClass('sirv-item-body--selected')) {
                     $obj.removeClass('sirv-item-body--selected');
@@ -2451,10 +2448,10 @@ jQuery(function($){
                     let galleryItems = $('.gallery-img');
 
                     $.each(galleryItems, function(index, value){
-                        $('.selected-miniatures-container').append('<li class="selected-miniature"><img class="selected-miniature-img" data-id="'+ $(this).attr('data-id') +
-                            '" data-original="'+ $(this).attr('data-original') +'" data-type="'+ $(this).attr('data-type') + '"'+
+                        $('.selected-miniatures-container').append('<li class="selected-miniature"><img class="selected-miniature-img" data-item-id="'+ $(this).attr('data-item-id') +
+                            '" data-item-url="'+ $(this).attr('data-item-url') +'" data-item-type="'+ $(this).attr('data-item-type') + '"'+
                             '  data-caption="'+ escapeHtml($(this).parent().siblings('span').children().val()) +'"'+
-                            '  src="'+ getItemSrc($(this).attr('data-type'), $(this).attr('data-original') , 40) +'"' +' /></li>\n');
+                            '  src="'+ getItemSrc($(this).attr('data-item-type'), $(this).attr('data-item-url') , 40) +'"' +' /></li>\n');
                     });
                 }
             }
@@ -2468,7 +2465,7 @@ jQuery(function($){
                 }
 
                 $.each(selectedImages, function(index, value){
-                    $('.sirv-item-body[data-id="' + $(value).attr('data-id') + '"]').addClass('sirv-item-body--selected');
+                    $('.sirv-item-body[data-item-id="' + $(value).attr('data-item-id') + '"]').addClass('sirv-item-body--selected');
                 });
             }else{
                 $('.selection-content').removeClass('items-selected');
@@ -2599,7 +2596,7 @@ jQuery(function($){
             $.each(data.srcs, function(index, value){
                         let figure = document.createElement('figure');
                         let imgTag = document.createElement('img');
-                        let imgSrc = getSirvCdnUrl($(value).attr('data-original'));
+                        let imgSrc = getSirvCdnUrl($(value).attr('data-item-url'));
                         let title = $(this).parent().siblings('span').children().val();
                         let linkTag = '';
                         let img_width = $(this).attr('data-width');
@@ -2871,7 +2868,7 @@ jQuery(function($){
                 let selectedImage = $('.selected-miniature-img');
                 let inputAnchor = $('#sirv-add-featured-image').attr('data-input-anchor');
 
-                $(inputAnchor).val($(selectedImage).attr('data-original'));
+                $(inputAnchor).val($(selectedImage).attr('data-item-url'));
 
                 bPopup.close();
             }
@@ -2885,7 +2882,7 @@ jQuery(function($){
             if ($('.selected-miniature-img').length > 0) {
                 $firstSelectedImage = $(".selected-miniature-img")[0];
 
-                let productImage = $($firstSelectedImage).attr("data-original");
+                let productImage = $($firstSelectedImage).attr("data-item-url");
 
                 let $storage = $("#sirv_woo_product_image_" + id);
 
@@ -2906,8 +2903,8 @@ jQuery(function($){
             if ($('.selected-miniature-img').length > 0) {
                 let selectedImages = $('.selected-miniature-img');
                 $.each(selectedImages, function(index, img){
-                    let url = $(img).attr('data-original');
-                    let type = $(img).attr('data-type');
+                    let url = $(img).attr('data-item-url');
+                    let type = $(img).attr('data-item-type');
                     items.push({url: url, type: type, provider: 'sirv', order: index});
                 });
 
@@ -2939,20 +2936,20 @@ jQuery(function($){
                 documentFragment.append(addItem);
 
                 $.each(selectedImages, function(index, value){
-                    const type = $(value).attr("data-type");
-                    const originalPath = $(value).attr("data-original");
+                    const type = $(value).attr("data-item-type");
+                    const url = $(value).attr("data-item-url");
 
                     let elemBlock = $('<li class="gallery-item"><div><div><a class="delete-image delete-image-icon" href="#" title="Remove"></a>'+
-                        '<img class="gallery-img" src="' + getItemSrc(type, originalPath, 150) +'"'+
-                                                        ' data-id="'+ $(value).attr('data-id') +'"'+
-                                                        'data-order="'+ index +'"'+
-                                                        'data-original="'+ $(value).attr('data-original') +
-                                                        '" data-type="'+ $(value).attr('data-type') +'" alt=""'+
-                                                        ' title="' + basename($(value).attr('data-original')) + '"' +
-                                                        'data-width="'+ $(value).attr('data-width') +'" '+
-                                                        'data-height="'+ $(value).attr('data-height') +'">'+
-                                                        '</div><span><input type="text" placeholder="Text caption.."'+
-                                                        ' data-setting="caption" class="image-caption" value="'+ escapeHtml($(value).attr('data-caption')) +'" /></span></div></li>\n');
+                        '<img class="gallery-img" src="' + getItemSrc(type, url, 150) +'"'+
+                            ' data-item-id="'+ $(value).attr('data-item-id') +'"'+
+                            'data-item-order="'+ index +'"'+
+                            'data-item-url="'+ $(value).attr('data-item-url') +
+                            '" data-item-type="'+ $(value).attr('data-item-type') +'" alt=""'+
+                            ' title="' + basename($(value).attr('data-item-url')) + '"' +
+                            'data-width="'+ $(value).attr('data-width') +'" '+
+                            'data-height="'+ $(value).attr('data-height') +'">'+
+                            '</div><span><input type="text" placeholder="Text caption.."'+
+                            ' data-setting="caption" class="image-caption" value="'+ escapeHtml($(value).attr('data-caption')) +'" /></span></div></li>\n');
                     documentFragment.append(elemBlock);
                 });
 
@@ -2999,7 +2996,7 @@ jQuery(function($){
 
             function reCalcOrder(){
                 $('.gallery-img').each(function(index){
-                    $(this).attr('data-order', index);
+                    $(this).attr('data-item-order', index);
                 });
             }
 
@@ -3102,12 +3099,12 @@ jQuery(function($){
             let images = []
             $('.gallery-img:visible').each(function(){
                 let tmp = {};
-                let url = $(this).attr('data-original');
+                let url = $(this).attr('data-item-url');
                 //tmp['url'] = tmp_url.replace(/http(?:s)*:/, '');
                 tmp['url'] = getSirvCdnUrl(url);
-                tmp['order'] = $(this).attr('data-order');
+                tmp['order'] = $(this).attr('data-item-order');
                 tmp['caption'] = removeNotAllowedHTMLTags($(this).parent().siblings('span').children().val());
-                tmp['type'] = $(this).attr('data-type');
+                tmp['type'] = $(this).attr('data-item-type');
                 tmp['image_width'] = $(this).attr('data-width');
                 tmp['image_height'] = $(this).attr('data-height');
                 /* $.ajax({
@@ -3278,13 +3275,13 @@ jQuery(function($){
 
                     let elemBlock = $('<li class="gallery-item"><div><div><a class="delete-image delete-image-icon" href="#" title="Remove"></a>'+
                         '<img class="gallery-img" src="'+ getItemSrc(images[i]['type'], images[i]['url'], 150) +'"'+
-                                                        ' data-id="' + md5((images[i]['url']).replace('https:', '')) +'"'+
-                                                        'data-order="'+ images[i]['order'] +'"'+
-                                                        'data-original="'+ images[i]['url'] +
-                                                        '" data-type="'+ images[i]['type'] +'" alt=""'+
-                                                        'title="' + basename(images[i]['url']) +'"></div>'+
-                                                        '<span><input type="text" placeholder="Text caption..."'+
-                                                        ' data-setting="caption" class="image-caption" value="'+ caption +'" /></span></div></li>\n');
+                            ' data-item-id="' + md5((images[i]['url']).replace('https:', '')) +'"'+
+                            'data-item-order="'+ images[i]['order'] +'"'+
+                            'data-item-url="'+ images[i]['url'] +
+                            '" data-item-type="'+ images[i]['type'] +'" alt=""'+
+                            'title="' + basename(images[i]['url']) +'"></div>'+
+                            '<span><input type="text" placeholder="Text caption..."'+
+                            ' data-setting="caption" class="image-caption" value="'+ caption +'" /></span></div></li>\n');
                     documentFragment.append(elemBlock);
                 }
 
@@ -3348,7 +3345,7 @@ jQuery(function($){
             let type = 'empty';
 
             $.each(gallery, function (index, item) {
-                itemsTypes.push($(item).attr('data-type'));
+                itemsTypes.push($(item).attr('data-item-type'));
             });
 
             if(count == 0){
@@ -3447,7 +3444,7 @@ jQuery(function($){
             let isType = false;
             $items = $(".gallery-img");
             $.each($items, function(){
-                if($(this).attr('data-type') === type){
+                if($(this).attr('data-item-type') === type){
                     isType = true;
                 }
             });

@@ -765,7 +765,7 @@ class Woo
     if ( (empty($sirv_images) && empty($wc_images)) || (empty($sirv_images) && $order == '3') ) {
       $is_empty_main_image = empty((array) $main_image);
       if ( (!$is_show_all_items && $is_empty_main_image) || (empty($sirv_variations) && $is_empty_main_image) || $is_empty_main_image ) {
-        $sirv_images[] = (object) $this->get_wc_placeholder_as_item();
+        $sirv_images[] = $this->get_wc_placeholder_as_item();
       }
     }
 
@@ -792,7 +792,7 @@ class Woo
     $items = (object) array();
 
     if (empty((array) $main_image) && empty($sirv_images) && empty($wc_images) && empty($sirv_variations)) {
-      $sirv_images[] = (object) $this->get_wc_placeholder_as_item();
+      $sirv_images[] = $this->get_wc_placeholder_as_item();
     }
 
     $items = $this->merge_items($order, $sirv_images, $wc_images);
@@ -862,11 +862,11 @@ class Woo
 
   protected function get_wc_placeholder_as_item()
   {
-    return array(
+    return (object) array(
       'url' => wc_placeholder_img_src('full'),
       'type' => 'image',
       'provider' => 'woocommerce',
-      'viewId' => $this->product_id
+      'viewId' => $this->product_id,
     );
   }
 
@@ -1257,7 +1257,6 @@ class Woo
 
   protected function get_cat_gallery_html($items)
   {
-    //TODO: if no items then show placeholder
     $filteredContent = $this->get_filtered_cat_content(get_option('SIRV_WOO_CAT_CONTENT'));
     $swap = json_decode(get_option('SIRV_WOO_CAT_SWAP_METHOD'), true);
     $isHoverZoom = get_option('SIRV_WOO_CAT_ZOOM_ON_HOVER') == 'yes' ? true : false;
@@ -1281,17 +1280,26 @@ class Woo
     );
     $items_count = (int) get_option('SIRV_WOO_CAT_ITEMS');
     $item_count = 1;
-
-    /* if($items_count == 1 && count((array) $items) >= 1){
-      $gallery_cat_html = '<div class="Sirv" id="sirv-woo-cat-gallery_' . $this->product_id . '" '. $this->render_viewer_options($viewer_options).'>
-        <div data-src="'. $arr_items[0]->url .'" data-type="zoom"></div>
-      </div>';
-    } */
+    $saved_profile = get_option('SIRV_WOO_CAT_PROFILE');
+    $profile = !empty($saved_profile) ? "profile=$saved_profile" : "";
 
 
-    if ($items_count == 2) {
+    if ( $items_count == 2 ) {
       $image_items = self::filter_object_by_item_type($items, 'image');
-      if (count($image_items) >= 2) {
+      $image_items_count = count($image_items);
+
+      if( $image_items_count == 1 ){
+        $src = $image_items[0]->provider == 'sirv' ? $image_items[0]->url . '?w=10&colorize.color=efefef"' : $image_items[0]->url;
+        $data_src = $image_items[0]->provider == 'sirv' ? $image_items[0]->url .'?'. $profile : $image_items[0]->url;
+
+        $gallery_cat_html = '
+          <div class="sirv-figure">
+            <img class="Sirv image-main" src="' . $src . '?w=10&colorize.color=efefef" data-src="' . $data_src .'">
+          </div>
+        ' . PHP_EOL;
+      }
+
+      if ( $image_items_count >= 2 ) {
         $hover_styles = '
           <style>
               .sirv-figure {
@@ -1315,34 +1323,43 @@ class Woo
           </style>
         ' . PHP_EOL;
 
+        $src = $image_items[0]->provider == 'sirv' ? $image_items[0]->url . '?w=10&colorize.color=efefef"' : $image_items[0]->url;
+        $data_src = $image_items[0]->provider == 'sirv' ? $image_items[0]->url . '?' . $profile : $image_items[0]->url;
+        $secont_data_src = $image_items[1]->provider == 'sirv' ? $image_items[1]->url . '?' . $profile : $image_items[1]->url;
+
         $gallery_cat_html  = $hover_styles;
         $gallery_cat_html .= '
           <div class="sirv-figure">
-            <img class="Sirv image-main" src="' . $image_items[0]->url . '?w=10&colorize.color=efefef" data-src="' . $image_items[0]->url . '">
-            <img class="Sirv image-hover" data-src="' . $image_items[1]->url . '">
-          </div>
-        ' . PHP_EOL;
-      } else {
-        $gallery_cat_html = '
-          <div class="sirv-figure">
-            <img class="Sirv image-main" src="' . $image_items[0]->url . '?w=10&colorize.color=efefef" data-src="' . $image_items[0]->url . '">
+            <img class="Sirv image-main" src="' . $src . '" data-src="' .  $data_src . '">
+            <img class="Sirv image-hover" data-src="' . $secont_data_src . '">
           </div>
         ' . PHP_EOL;
       }
     } else {
       $gallery_cat_html = '<div class="Sirv" id="sirv-woo-cat-gallery_' . $this->product_id . '" ' . $this->render_viewer_options($viewer_options) . '>' . PHP_EOL;
       foreach ($items as $item) {
-        if (!in_array($item->type, $filteredContent)) continue;
-        $zoom = $isHoverZoom ? self::get_zoom_class($item->type) : '';
-        if($item->type === 'spin'){
-          $showing_method_pattern = $showing_method == "static" ? "?thumb" : "?image";
-          $gallery_cat_html .= '<img data-src="'. $item->url . $showing_method_pattern .'"' .'/>' . PHP_EOL;
+        if ( !in_array($item->type, $filteredContent) ) continue;
+
+        if( $item->provider == "sirv" ){
+          $zoom = $isHoverZoom ? self::get_zoom_class($item->type) : '';
+          if( $item->type === 'spin' ){
+            $showing_method_pattern = $showing_method == "static" ? "?thumb" : "?image";
+            $gallery_cat_html .= '<img data-src="'. $item->url . $showing_method_pattern  .'&'. $profile .'"' .'/>' . PHP_EOL;
+          }else{
+            $gallery_cat_html .= '<div data-src="'. $item->url  .'?'. $profile .'" '. $zoom .'></div>' . PHP_EOL;
+          }
         }else{
-          $gallery_cat_html .= '<div data-src="'. $item->url .'" '. $zoom .'></div>' . PHP_EOL;
+          $gallery_cat_html .= '<img data-type="static" data-src="' . $item->url.'">' . PHP_EOL;
         }
 
-        if ($item_count >= $items_count) break;
+        if ( $item_count >= $items_count ) break;
+
         $item_count += 1;
+      }
+
+      if( $item_count - 1 == 0 ){
+        $wc_placeholder_item = $this->get_wc_placeholder_as_item();
+        $gallery_cat_html .= '<img data-src="' . $wc_placeholder_item->url . '">' . PHP_EOL;
       }
       $gallery_cat_html .= "</div>" . PHP_EOL;
     }

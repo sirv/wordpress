@@ -4,23 +4,6 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 $error = '';
 
-function sirv_check_s3_api_credentials()
-{
-  require_once __DIR__ . '/../includes/classes/options-service.class.php';
-
-  $host = getValue::getOption('SIRV_AWS_HOST');
-  $bucket = getValue::getOption('SIRV_AWS_BUCKET');
-  $key = getValue::getOption('SIRV_AWS_KEY');
-  $secret_key = getValue::getOption('SIRV_AWS_SECRET_KEY');
-
-  if (empty($host) || empty($bucket) || empty($key) || empty($secret_key)) {
-    return false;
-  }
-
-  return true;
-}
-
-
 $sirvAPIClient = sirv_getAPIClient();
 $isMuted = $sirvAPIClient->isMuted();
 if ($isMuted) {
@@ -41,7 +24,7 @@ if ($sirvStatus) {
     $sirvCDNurl = get_option('SIRV_CDN_URL');
 
 
-    update_option('SIRV_AWS_BUCKET', $accountInfo->alias);
+    update_option('SIRV_ACCOUNT_NAME', $accountInfo->alias);
     //update_option('SIRV_NETWORK_TYPE', (isset($accountInfo->aliases->{$accountInfo->alias}->cdn) && $accountInfo->aliases->{$accountInfo->alias}->cdn) ? 1 : 2);
     //update_option( 'SIRV_NETWORK_TYPE', (isset($accountInfo->cdnURL) ? 1 : 2) );
     update_option('SIRV_FETCH_MAX_FILE_SIZE', $accountInfo->fetching->maxFilesize);
@@ -82,18 +65,6 @@ if ($sirvStatus) {
               <th><label>Domain</label></th>
               <td>
                 <span><?php echo htmlspecialchars(get_option('SIRV_CDN_URL')); ?></span>
-              </td>
-            </tr>
-            <tr>
-              <th>
-                S3 API
-              </th>
-              <td>
-                <?php if (sirv_check_s3_api_credentials()) { ?>
-                  <span style="color: #55B676;">Connected</span>
-                <?php } else { ?>
-                  <span style="color: #F04E28;">Disconnected</span>
-                <?php } ?>
               </td>
             </tr>
             <!--  <tr>

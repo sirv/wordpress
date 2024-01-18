@@ -239,6 +239,18 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 7.2.0 =
+* Added category image profiles.
+* Improved experience of the Sirv media library.
+* Fixed issue of hidden folders with leading dot.
+* Improved how responsive images work.
+* Simplified design of synchronisation page.
+* Added option to stop sync process.
+* Improved some modal windows.
+* Improved error handling.
+* Removed the use of the S3 API.
+* Small fixes and optimizations.
+
 = 7.1.5 =
 * Improved security checking.
 

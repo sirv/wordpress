@@ -17,11 +17,15 @@ class SirvControl extends \Elementor\Base_Data_Control{
 		$isRtl = is_rtl();
 		$dir = $isRtl ? 'rtl': 'ltr';
 
+		wp_register_style('sirv_toast_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/vendor/toastr.css');
+		wp_enqueue_style('sirv_toast_style');
+		wp_enqueue_script('sirv_toast_js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/toastr.min.js', array('jquery'), false);
+
 		wp_register_style( 'sirv_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv.css' );
 		wp_enqueue_style('sirv_style');
 		wp_register_style( 'sirv_mce_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv-shortcode-view.css' );
 		wp_enqueue_style('sirv_mce_style');
-		wp_register_script( 'sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array( 'jquery', 'jquery-ui-sortable' ), false);
+		wp_register_script( 'sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array( 'jquery', 'jquery-ui-sortable, sirv_toast_js' ), false);
 		wp_localize_script( 'sirv_logic', 'sirv_ajax_object', array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
@@ -42,7 +46,8 @@ class SirvControl extends \Elementor\Base_Data_Control{
 			'login_error_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'templates/login_error.html',
 			'featured_image_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'templates/featured_image.html',
 			'woo_media_add_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'templates/woo_media_add.html',
-			'isNotEmptySirvOptions' => $isNotEmptySirvOptions, 'sirv_cdn_url' => get_option('SIRV_CDN_URL')));
+			'isNotEmptySirvOptions' => $isNotEmptySirvOptions,
+			'sirv_cdn_url' => get_option('SIRV_CDN_URL')));
 		wp_enqueue_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array( 'jquery'), false);
 
 		wp_enqueue_script( 'sirv_control_manager', plugins_url('/assets/js/sirvControlManager.js', __FILE__), array('jquery'), false, true);

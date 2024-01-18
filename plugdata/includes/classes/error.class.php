@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 class FetchError{
     protected static $_errors = array(
         1 => "File is missing or has insufficient rights",
-        2 => "Maximum file size exceeded",
+        2 => "File size too large",
         3 => "Timeout was reached",
         4 => "Unknown error",
         5 => "Sirv API request limit reached",
