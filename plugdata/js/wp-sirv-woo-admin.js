@@ -10,7 +10,6 @@ jQuery( function($){
       let id = window.sirvProductID;
       let imgUrl = $($("#sirv_woo_product_image_" + id)[0]).val();
       const $img = $("#sirv-woo-product-image-container_"+ id +" .sirv-woo-product-image img");
-      console.log(imgUrl);
 
       if(!!imgUrl){
         $img.attr('src', imgUrl + imgPattern);
@@ -103,13 +102,13 @@ jQuery( function($){
       const videoLink = !!item.videoLink ? item.videoLink : '';
       const videoId = !!item.videoID ? item.videoID : '';
       const url = !!item.url ? item.url : '';
-      //const imgUrl = !!url ? url + imgPattern : '';
       const imgUrl = !!url ? getGalleryItemUrl(item.type, url, imgPattern) : '';
-
       const deleteType = item.type == 'online-video' ? 'online video' : item.type;
+      const itemId = !!item.itemId ? item.itemId : -1;
+      const attachmentId = !!item.attachmentId ? item.attachmentId : -1;
 
       const liItem =
-        `<li class="sirv-woo-gallery-item" data-order="${item.order}" data-type="${item.type}" data-provider="${item.provider}" data-url-orig="${url}" data-view-id="${id}" data-caption="${caption}" data-video-link="${videoLink}" data-video-id="${videoId}">
+        `<li class="sirv-woo-gallery-item" data-order="${item.order}" data-type="${item.type}" data-provider="${item.provider}" data-url-orig="${url}" data-view-id="${id}" data-caption="${caption}" data-video-link="${videoLink}" data-video-id="${videoId}" data-item-id="${itemId}" data-attachment-id="${attachmentId}">
           <div class="sirv-woo-gallery-item-img-wrap">
             <img class="sirv-woo-gallery-item-img" src="${imgUrl || noThumb}">
           </div>
@@ -220,6 +219,9 @@ jQuery( function($){
           item.videoID = $(this).attr('data-video-id');
           item.videoLink = $(this).attr('data-video-link');
         }
+
+        item.itemId = $(this).attr('data-item-id') || -1;
+        item.attachmentId = $(this).attr('data-attachment-id') || -1;
 
         items.push(item);
 

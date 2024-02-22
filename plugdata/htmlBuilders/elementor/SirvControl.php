@@ -28,10 +28,12 @@ class SirvControl extends \Elementor\Base_Data_Control{
 		wp_register_script( 'sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array( 'jquery', 'jquery-ui-sortable, sirv_toast_js' ), false);
 		wp_localize_script( 'sirv_logic', 'sirv_ajax_object', array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
+			'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
 			'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
 			'plugin_subdir_path' => SIRV_PLUGIN_RELATIVE_SUBDIR_PATH,
 			'sirv_cdn_url' => get_option('SIRV_CDN_URL') )
 		);
+
 		wp_enqueue_script('sirv_logic');
 		wp_enqueue_script( 'sirv_logic-md5', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-md5.min.js', array(), '1.0.0');
 		wp_enqueue_script( 'sirv_modal', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-bpopup.min.js', array('jquery'), '1.0.0');

@@ -279,9 +279,12 @@ class Woo
                   $thumb_url = self::get_gallery_item_url($item['type'], $item['url'], $item_pattern);
                   $caption = isset($item['caption']) ? urldecode($item['caption']) : '';
 
+                  $item_id = isset($item['itemId']) ? $item['itemId'] : -1;
+                  $attachment_id = isset($item['attachmentId']) ? $item['attachmentId'] : -1;
+
             $delete_type = $item['type'] == 'online-video' ? 'online video' : $item['type'];
 
-            echo '<li class="sirv-woo-gallery-item" data-order="' . $item['order'] . '" data-type="' . $item['type'] . '"data-provider="' . $item['provider'] . '" data-url-orig="' . $item['url'] . '"' . $video_data . ' data-view-id="' . $id . '" data-caption="' . $caption . '">
+            echo '<li class="sirv-woo-gallery-item" data-order="' . $item['order'] . '" data-type="' . $item['type'] . '"data-provider="' . $item['provider'] . '" data-url-orig="' . $item['url'] . '"' . $video_data . ' data-view-id="' . $id . '" data-caption="' . $caption . '" data-item-id="'. $item_id .'" data-attachment-id="'. $attachment_id .'">
                           <div class="sirv-woo-gallery-item-img-wrap">
                             <img class="sirv-woo-gallery-item-img" src="' . $thumb_url . '">
                           </div>
@@ -1126,12 +1129,20 @@ class Woo
   {
     $main_item = (object) array();
     $sirv_main_item = self::get_post_sirv_data($product_id, 'sirv_woo_product_image', false, false);
-    //$this->isSirvProductImage($product_id);
 
     if (!empty($sirv_main_item)) {
       $attachment_id = get_post_thumbnail_id($product_id);
       $att_metadata = wp_get_attachment_metadata($attachment_id);
-      $main_item = (object) array("url" => $sirv_main_item, "type" => $att_metadata['sirv_type'], "provider" => "sirv", "viewId" => $product_id);
+      $item_type = '';
+
+      if(empty($att_metadata['sirv_type'])){
+        $ext = pathinfo(Utils::clean_uri_params($sirv_main_item), PATHINFO_EXTENSION);
+        $item_type = Utils::get_sirv_type_by_ext($ext);
+      }else{
+        $item_type = $att_metadata['sirv_type'];
+      }
+
+      $main_item = (object) array("url" => $sirv_main_item, "type" => $item_type, "provider" => "sirv", "viewId" => $product_id);
     }
 
     return $main_item;
@@ -1148,16 +1159,10 @@ class Woo
 
   protected function get_sirv_item_data($image_id, $product_id)
   {
-    $url = $this->clean_uri_params(wp_get_attachment_image_src($image_id, 'full')[0]);
+    $url = Utils::clean_uri_params(wp_get_attachment_image_src($image_id, 'full')[0]);
     $provider = $this->is_sirv_item($url) ? 'sirv' : 'woocommerce';
 
     return (object) array('url' => $url, 'type' => 'image', 'provider' => $provider, 'viewId' => $product_id);
-  }
-
-
-  protected function clean_uri_params($url)
-  {
-    return preg_replace('/\?.*/i', '', $url);
   }
 
 
@@ -1352,7 +1357,10 @@ class Woo
           $gallery_cat_html .= '<img data-type="static" data-src="' . $item->url.'">' . PHP_EOL;
         }
 
-        if ( $item_count >= $items_count ) break;
+        if ( $item_count >= $items_count ){
+          $item_count += 1;
+          break;
+        }
 
         $item_count += 1;
       }
@@ -1361,6 +1369,7 @@ class Woo
         $wc_placeholder_item = $this->get_wc_placeholder_as_item();
         $gallery_cat_html .= '<img data-src="' . $wc_placeholder_item->url . '">' . PHP_EOL;
       }
+
       $gallery_cat_html .= "</div>" . PHP_EOL;
     }
 

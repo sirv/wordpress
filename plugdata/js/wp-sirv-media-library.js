@@ -12,7 +12,7 @@ jQuery(function($){
 
         //Initialization
         sirv_update_window_dimensions()
-        $(window).resize(sirv_update_window_dimensions);
+        $(window).on('resize', sirv_update_window_dimensions);
 
     });
 });

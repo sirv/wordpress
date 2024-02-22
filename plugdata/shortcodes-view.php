@@ -200,8 +200,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                 <td class="t-id">ID</td>
                 <td class="t-pv" style="width:auto;">Preview</td>
                 <td class="t-sh-name" style="width:20%">Shortcode name</td>
-                <td class="t-name" style="width:20%">Type</td>
-                <td class="t-imc" style="width:20%">Items count</td>
+                <td class="t-name" style="width:25%">Type</td>
+                <td class="t-imc" style="width:15%">Items count</td>
                 <td class="t-imc" style="width:25%">Created</td>
                 <td class="t-sc" style="width:25%">Shortcode</td>
             </tr>

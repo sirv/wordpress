@@ -43,6 +43,34 @@ class Utils{
   }
 
 
+  public static function get_file_extensions(){
+    return array(
+      "image" => array("tif", "tiff", "bmp", "jpg", "jpeg", "gif", "png", "apng", "svg", "webp", "heif", "avif", "ico"),
+      "video" => array("mp4", "mpg", "mpeg", "mov", "qt", "webm", "avi", "mp2", "mpe", "mpv", "ogg", "m4p", "m4v", "wmv"),
+      "model" => array("glb", "gltf"),
+      "spin" => array("spin"),
+      "audio" => array("mp3", "wav", "ogg", "flac", "aac", "wma", "m4a"),
+    );
+  }
+
+
+  public static function get_sirv_type_by_ext($ext){
+    $extensions_by_type = self::get_file_extensions();
+    foreach ($extensions_by_type as $type => $extensions) {
+      if(in_array($ext, $extensions)){
+        return $type;
+      }
+    }
+
+    return false;
+  }
+
+
+  public static function clean_uri_params($url){
+    return preg_replace('/\?.*/i', '', $url);
+  }
+
+
   public static function get_head_request($url, $protocol_version = 1){
     self::$headers = array();
     $error = NULL;

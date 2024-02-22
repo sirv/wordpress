@@ -1359,3 +1359,7 @@ input#sirv-model-shadow-slider {
     color: #0b7307 !important;
     border-left: 3px solid #92d097;
 }
+
+#gallery-thumbs-height{
+    width: 100%;
+}

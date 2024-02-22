@@ -114,12 +114,12 @@ class SirvAPIClient
 
         if ($res && $res->http_code == 200) {
             $this->connected = true;
-            return array('status' => 'uploaded');
+            return array('upload_status' => 'uploaded');
         } else {
             $this->connected = false;
             $this->nullToken();
             $this->updateParentClassSettings();
-            return array('status' => 'failed');
+            return array('upload_status' => 'failed');
         }
     }
 

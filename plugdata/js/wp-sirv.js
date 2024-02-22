@@ -1066,6 +1066,7 @@ jQuery(function($){
                 url: sirv_ajax_object.ajaxurl,
                 data: {
                     action: 'sirv_get_search_data',
+                    _ajax_nonce: sirv_ajax_object.ajaxnonce,
                     search_query: query,
                     from: from,
                     dir: dir,
@@ -1074,7 +1075,7 @@ jQuery(function($){
                 dataType: 'json',
             }
             //sendAjaxRequest(AjaxData, processingOverlay=false, showingArea=false, isDebug=false, doneFn=false, beforeSendFn=false, errorFn=false)
-            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = true,
+            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false,
                 doneFn = function (data) {
                     if(data){
                         $('.sirv-search-for').text("Results for '" + query + "'" + queryMsg + dirMsg);
@@ -1554,6 +1555,7 @@ jQuery(function($){
                 url: sirv_ajax_object.ajaxurl,
                 data: {
                     action: 'sirv_copy_file',
+                    _ajax_nonce: sirv_ajax_object.ajaxnonce,
                     filePath: filePath,
                     copyPath: copyFilePath,
                 },
@@ -1561,15 +1563,28 @@ jQuery(function($){
                 dataType: 'json',
             }
             //sendAjaxRequest(AjaxData, processingOverlay=false, showingArea=false, isDebug=false, doneFn=false, beforeSendFn=false, errorFn=false)
-            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = true, function (data) {
-                if(!!data){
-                    if(data.duplicated){
-                        getContentFromSirv(window.sirvGetPath);
-                    }else{
-                        //console.log('file was not duplicated');
+            sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false,
+                doneFunc = function (data) {
+                    if(!!data){
+                        if(data.duplicated){
+                            toastr.success(`File has been successfuly duplicated`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
+                            getContentFromSirv(window.sirvGetPath);
+                        }else{
+                            //console.log('file was not duplicated');
+                        }
                     }
+                },
+                beforeSendFunc = false,
+                errorFn = function(jqXHR, status, error){
+                    $(".loading-ajax").hide();
+
+                    console.error("Error during ajax request: " + error);
+                    console.error("Status: " + status);
+                    console.error(jqXHR.responseText);
+
+                    toastr.error(`Ajax error: ${error}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
                 }
-            });
+            );
         }
 
 
@@ -1577,23 +1592,35 @@ jQuery(function($){
                 let ajaxData = {
                     url: sirv_ajax_object.ajaxurl,
                     data: {
-                        action: 'sirv_rename_file',
+                        action: "sirv_rename_file",
+                        _ajax_nonce: sirv_ajax_object.ajaxnonce,
                         filePath: filename,
-                        newFilePath: newFilename
+                        newFilePath: newFilename,
                     },
-                    type: 'POST',
-                    dataType: 'json',
-                }
-                sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false, function (data) {
-                    if(!!data){
-                        if(data.renamed){
-                            getContentFromSirv(window.sirvGetPath);
-                        }else{
-                            console.log('File was not renamed');
+                    type: "POST",
+                    dataType: "json",
+                };
+                sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea = false, isdebug = false,
+                    doneFunc = function (data) {
+                        if(!!data){
+                            if(data.renamed){
+                                getContentFromSirv(window.sirvGetPath);
+                            }else{
+                                console.log('File was not renamed');
+                            }
                         }
-                    }
+                    },
+                    beforeSendFunc = false,
+                    errorFn = function(jqXHR, status, error){
+                        $(".loading-ajax").hide();
 
-                });
+                        console.error("Error during ajax request: " + error);
+                        console.error("Status: " + status);
+                        console.error(jqXHR.responseText);
+
+                        toastr.error(`Ajax error: ${error}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
+                    }
+                );
         }
 
 
@@ -1757,15 +1784,16 @@ jQuery(function($){
             cancelSearchLight();
 
             let ajaxData = {
-                            url: sirv_ajax_object.ajaxurl,
-                            data: {
-                                    action: 'sirv_get_content',
-                                    path: path,
-                                    continuation: continuation,
-                            },
-                            type: 'POST',
-                            dataType: 'json',
-            }
+                url: sirv_ajax_object.ajaxurl,
+                data: {
+                    action: "sirv_get_content",
+                    _ajax_nonce: sirv_ajax_object.ajaxnonce,
+                    path: path,
+                    continuation: continuation,
+                },
+                type: "POST",
+                dataType: "json",
+            };
 
             $('.sirv-empty-dir').remove();
 
@@ -1812,15 +1840,17 @@ jQuery(function($){
 
             if (!!newFolderName) {
                 let ajaxData = {
-                                url: sirv_ajax_object.ajaxurl,
-                                type: 'POST',
-                                dataType: "json",
-                                data: {
-                                    action:  'sirv_add_folder',
-                                    current_dir:  $('#filesToUpload').attr('data-current-folder'),
-                                    new_dir:  newFolderName
-                                },
+                    url: sirv_ajax_object.ajaxurl,
+                    type: 'POST',
+                    dataType: "json",
+                    data: {
+                        action:  'sirv_add_folder',
+                        _ajax_nonce: sirv_ajax_object.ajaxnonce,
+                        current_dir:  $('#filesToUpload').attr('data-current-folder'),
+                        new_dir:  newFolderName
+                    },
                 }
+
                 sendAjaxRequest(ajaxData, processingOverlay='.loading-ajax', showingArea=false, isdebug=false, function(response){
                     if(!!response){
                         if(!!response.isNewDirCreated){
@@ -1878,7 +1908,7 @@ jQuery(function($){
                 uploadTimer = window.setInterval(getUploadingStatus, 2500);
 
                 uploadByPart(groupedImages, currentDir, countFiles);
-                $('.sirv-empty-dir').remove();
+                //$('.sirv-empty-dir').remove();
             }
 
         }
@@ -1891,6 +1921,7 @@ jQuery(function($){
                 let data = new FormData();
 
                 data.append('action', 'sirv_upload_files');
+                data.append("_ajax_nonce", sirv_ajax_object.ajaxnonce);
                 data.append('current_dir', currentDir);
                 data.append('totalFiles', countFiles);
 
@@ -1904,26 +1935,27 @@ jQuery(function($){
                 data.append("imagePaths", JSON.stringify(imagePaths));
 
                 let ajaxData = {
-                                url: sirv_ajax_object.ajaxurl,
-                                type: 'POST',
-                                contentType: false,
-                                processData: false,
-                                data: data
+                    url: sirv_ajax_object.ajaxurl,
+                    type: 'POST',
+                    contentType: false,
+                    processData: false,
+                    data: data
                 }
                 sendAjaxRequest(ajaxData, processingOverlay=false, showingArea=false, isdebug=false,
                     doneFn=function(response){
                         uploadByPart(groupedImages, currentDir, countFiles);
                     },
                     beforeFn=false,
-                    /* errorFn=function(jqXHR, status, error){
-                        //window.clearInterval(uploadTimer);
-                    } */);
+                    errorFn=function(jqXHR, status, error){
+                        toastr.error(`Ajax error: ${error}`, '', {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
+                        $(".sirv-upload-ajax").hide();
+                        getContentFromSirv(window.sirvGetPath);
+                    });
             }else{
                 if(groupedImages['overSizedImages'].length !== 0){
                     uploadImagesByChunk(groupedImages['overSizedImages'], currentDir, countFiles);
                 }else{
                     $('.sirv-upload-ajax').hide();
-                    //getContentFromSirv(decodeURI(currentDir));
                     getContentFromSirv(window.sirvGetPath);
                 }
             }
@@ -1957,6 +1989,7 @@ jQuery(function($){
                 }
                 let data = new FormData();
                 data.append('action', 'sirv_upload_file_by_chanks');
+                data.append("_ajax_nonce", sirv_ajax_object.ajaxnonce);
                 data.append("partFileName", file.name);
                 data.append('partFilePath', fileItem.fullPath);
                 data.append('totalParts', totalSlices);
@@ -1987,6 +2020,7 @@ jQuery(function($){
                                 $(".sirv-upload-ajax").hide();
 
                                 console.error("Error during ajax request: " + response);
+                                toastr.error(`Ajax error: ${response}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
                             }
                         }else{
                             if ( nextSlice < file.size ) {
@@ -2003,7 +2037,6 @@ jQuery(function($){
                     },
                     beforeSendFunc=false,
                     errorFn = function(jqXHR, status, error){
-                        //console.log(jqXHR);
                         if(jqXHR.status == 400 && errorLimitPattern.test(jqXHR.responseText)){
                             realRequestSize = realRequestSize == 0 ? requestContentLenght : realRequestSize;
                             uploadImageByChunk(fileItem, 0, reader, 1, totalOverSizedFiles, currentDir);
@@ -2014,9 +2047,12 @@ jQuery(function($){
                             console.error("Error during ajax request: " + error);
                             console.error("Status: " + status);
                             console.error(jqXHR.responseText);
+
+                            toastr.error(`Ajax error: ${error}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
+                            getContentFromSirv(window.sirvGetPath);
                         }
                     }
-                    );
+                );
             };
 
             reader.readAsDataURL( blob );
@@ -2321,15 +2357,16 @@ jQuery(function($){
             }
 
             let data = {
-                        action: 'sirv_delete_files',
-                        filenames: filenamesArray
-            }
+                action: "sirv_delete_files",
+                _ajax_nonce: sirv_ajax_object.ajaxnonce,
+                filenames: filenamesArray,
+                };
 
             let ajaxData = {
-                            url: ajaxurl,
-                            type: 'POST',
-                            dataType: 'json',
-                            data: data
+                url: ajaxurl,
+                type: 'POST',
+                dataType: 'json',
+                data: data
             }
 
             sendAjaxRequest(ajaxData, processingOverlay='.loading-ajax', showingArea=false, isdebug=false, function(response){
@@ -2345,7 +2382,7 @@ jQuery(function($){
             },
             null,
             function(jqXHR, status, error){
-                toastr.error(`Ajax error: ${error}`, '', {preventDuplicates: true, timeOut: 2000, positionClass: "toast-top-center"});
+                toastr.error(`Ajax error: ${error}`, '', {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
             }
             );
         }
@@ -3249,17 +3286,17 @@ jQuery(function($){
                     $('input[name=sirv-model-shadow-slider]').val(modelShadowSlider);
                     $("#sirv-shadow-slider-value").text(modelShadowSlider);
 
-                    if($.parseJSON(response['use_sirv_zoom']) == true){
+                    if(JSON.parse(response['use_sirv_zoom']) == true){
                         $('.sirv-gallery-type[value=gallery-zoom-flag]').prop('checked', true);
                     }else{
                         $('.sirv-gallery-type[value=gallery-flag]').prop('checked', true);
                     }
                 }
 
-                $('#gallery-flag').prop('checked', $.parseJSON(response['use_as_gallery']));
-                $('#gallery-zoom-flag').prop('checked', $.parseJSON(response['use_sirv_zoom']));
-                $('#gallery-link-img').prop('checked', $.parseJSON(response['link_image']));
-                $('#gallery-show-caption').prop('checked', $.parseJSON(response['show_caption']));
+                $('#gallery-flag').prop('checked', JSON.parse(response['use_as_gallery']));
+                $('#gallery-zoom-flag').prop('checked', JSON.parse(response['use_sirv_zoom']));
+                $('#gallery-link-img').prop('checked', JSON.parse(response['link_image']));
+                $('#gallery-show-caption').prop('checked', JSON.parse(response['show_caption']));
 
                 let images = response['images'];
                 let documentFragment = $(document.createDocumentFragment());
@@ -3763,7 +3800,10 @@ jQuery(function($){
                             $(showingArea).html("");
                             $(showingArea).html(error);
                         }
-                        if (isprocessingOverlay) $(processingOverlay).hide();
+
+                        if (isprocessingOverlay) {
+                            $(processingOverlay).hide();
+                        }
                     }
                 }
             );
@@ -3774,7 +3814,7 @@ jQuery(function($){
             $('.sirv-tab-content').removeClass('sirv-tab-content-active');
             $('.nav-tab-wrapper > a').removeClass('nav-tab-active');
             $('.sirv-tab-content'+$object.attr('href')).addClass('sirv-tab-content-active');
-            $object.addClass('nav-tab-active').blur();
+            $object.addClass('nav-tab-active').trigger("blur");
             if(typeof e !== 'undefined') e.preventDefault();
         }
 

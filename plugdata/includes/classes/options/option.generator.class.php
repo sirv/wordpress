@@ -19,6 +19,12 @@ class Options_generator extends Options_components{
 
 
   protected static function render_options_block($block){
+    $save_button_html = '
+      <div class="sirv-save-button-wrapper">
+        <input type="submit" name="submit" class="button-primary sirv-save-settings" value="Save Settings" />
+      </div>';
+
+    $render_save_button = $block['show_save_button'] ? $save_button_html : '';
     $html = '
     <h2>'. $block['title'] .'</h2>
     <p class="sirv-options-desc">'. $block['description'] .'</p>
@@ -28,9 +34,7 @@ class Options_generator extends Options_components{
           '. self::loop($block['options']) . '
         </tbody>
       </table>
-      <div class="sirv-save-button-wrapper">
-        <input type="submit" name="submit" class="button-primary sirv-save-settings" value="Save Settings" />
-      </div>
+      '. $render_save_button .'
     </div>';
 
     return $html;

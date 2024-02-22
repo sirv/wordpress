@@ -3,6 +3,7 @@ tinymce.PluginManager.add('sirvgallery', function( editor ) {
     let jq;
     let placehodler_grey = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAKSURBVAgdY3gPAADxAPAXl1qaAAAAAElFTkSuQmCC";
     let placeholder_grey_params = '?q=1&w=10&colorize.color=efefef';
+    let cachedShData = {};
 
     function replaceGalleryShortcodes( content ) {
         return content.replace( /\[sirv-gallery id=(\d*)\]/g, function( match, id ) {
@@ -29,71 +30,103 @@ tinymce.PluginManager.add('sirvgallery', function( editor ) {
 
 
     function restoreResponsiveHTML( content ){
-        function getAttr( str, name ) {
-            name = new RegExp( name + '=\"([^\"]+)\"' ).exec( str );
-            return name ? window.decodeURIComponent( name[1] ) : '';
-        }
-
         return content.replace( /<img\s*?class=\"Sirv.*?\".*?\s(src=\"(.*?)\").*?\/>/g, function( match, srcTag, srcUrl){
-            //return match.replace(srcTag, '');
             let url = srcUrl.replace(/\?.*/ig, '');
             url = !!url ? url + placeholder_grey_params : placehodler_grey;
             return match.replace(srcTag, 'src="' + url + '"');
         });
     }
 
-
+    //TODO: make async func
     function html(sc, id ) {
-        sc = window.encodeURIComponent( sc );
         var html = '';
-        var data = {}
-            data['action'] = 'sirv_get_row_by_id';
-            data['row_id'] = id;
 
-            jq.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: data,
-                async: false,
-                dataType: 'json'
-            }).done(function(response){
-                //debug
-                //console.log(response);
+        if(isId(id)){
+            const cache = getcachedShData(id);
+            if(!!cache && !window.sirvIsChangedShortcode){
+                html = renderGallery(id, cache);
+            }else{
+                const data = {
+                    action: 'sirv_get_row_by_id',
+                    row_id: id,
+                };
 
-                var img_data = response['images'];
-                var profile = response.profile == '' ? '' : 'profile=' + response.profile +'&';
-                var images = '';
-                var count = img_data.length > 4 ? 4 : img_data.length;
+                jq.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: data,
+                    async: false,
+                    dataType: 'json'
+                }).done(function(response){
+                    //debug
+                    //console.log(response);
 
-                for(var i = 0; i < count; i++){
-                    let url = img_data[i]['type'] == 'model' ? sirv_ajax_object.assets_path + '/model-plhldr.svg' : img_data[i]['url'] +'?'+ profile +'thumbnail=120&image';
-                    images += '<img src="'+ url +'" alt="'+ img_data[i]['caption'] +'" />'
-                }
-                html =  '<div class="sirv-sc-view data-id-'+ id +'" data-id="'+ id +'" data-shortcode="'+ sc +'" contenteditable=false >'+
-                        '<div class="sirv-overlay" data-id="'+ id + '">'+
-                        '<span class="sirv-overlay-text">Sirv gallery: '+ img_data.length +' image'+((img_data.length>1)?'s':'')+'</span>'+
-                        '<a href="#" title="Delete gallery" class="sirv-delete-sc-view sc-view-button sc-buttons-hide dashicons dashicons-no" data-id="'+ id +'">Delete Gallery</a><a href="#" data-id="'+id+'" title="Edit gallery" class="sirv-edit-sc-view sc-view-button sc-buttons-hide dashicons dashicons-admin-generic">Edit Gallery</a>'+
-                        '</div>'+ images + '</div>';
-            });
+                    cachedShData[id] = response;
+                    window.sirvIsChangedShortcode = false;
+
+                    html = renderGallery(id, response);
+                });
+            }
+        }else{
+            return sc;
+        }
+
         return html;
+    }
+
+
+    function isId(id){
+        return (!!id && !isNaN(id));
     }
 
 
     function restoreMediaShortcodes( content ) {
         function getAttr( str, name ) {
             name = new RegExp( name + '=\"([^\"]+)\"' ).exec( str );
-            return name ? window.decodeURIComponent( name[1] ) : '';
+            return name ? name[1] : '';
         }
 
         return content.replace( /(<div class="sirv-sc-view.*?" .*?>)<div.*?>.*?<\/div>.*?<\/div>/g, function( match, div ) {
-            var data = getAttr( div, 'data-shortcode' );
+            const id = getAttr( div, 'data-id' );
 
-            if ( data ) {
-                return  data;
+            if (isId(id)) {
+                return `[sirv-gallery id=${id}]`;
             }
 
             return match;
         });
+    }
+
+    function getcachedShData(id){
+        if(isId(id)){
+            if(!!cachedShData[id]){
+                return cachedShData[id];
+            }
+        }
+
+        return null;
+    }
+
+
+    function renderGallery(id, data){
+        var img_data = data['images'];
+        var profile = data.profile == '' ? '' : 'profile=' + data.profile +'&';
+        var images = '';
+        var count = img_data.length > 4 ? 4 : img_data.length;
+        const ending = img_data.length > 1 ? '(s)' : '';
+
+        for(var i = 0; i < count; i++){
+            let url = img_data[i]['type'] == 'model' ? sirv_ajax_object.assets_path + '/model-plhldr.svg' : img_data[i]['url'] +'?'+ profile +'thumbnail=120&image';
+            images += '<img src="'+ url +'" alt="'+ img_data[i]['caption'] +'" />'
+        }
+        return `<div class="sirv-sc-view data-id-${id}" data-id="${id}" contenteditable=false >
+                    <div class="sirv-overlay" data-id="${id}">
+                        <span class="sirv-overlay-text">Sirv gallery: ${img_data.length} image${ending}</span>
+                        <a href="#" title="Delete gallery" class="sirv-delete-sc-view sc-view-button sc-buttons-hide dashicons dashicons-no" data-id="${id}">Delete Gallery</a>
+                        <a href="#" data-id="${id}" title="Edit gallery" class="sirv-edit-sc-view sc-view-button sc-buttons-hide dashicons dashicons-admin-generic">Edit Gallery</a>
+                    </div>
+                    ${images}
+                </div>`;
     }
 
 

@@ -1646,11 +1646,11 @@ span.sirv-crop-row__title {
     /*code here*/
 }
 
-.sirv-progress__text--complited {
+.sirv-progress__text--complited, .sirv-progress-text-complited {
     font-weight: 400;
 }
 
-.sirv-progress__text--complited span{
+.sirv-progress__text--complited span, .sirv-progress-text-complited span{
     font-weight: 600;
 }
 
@@ -2047,5 +2047,25 @@ input[name=SIRV_EMAIL]:focus::placeholder {
     display: none;
     margin-left: 5px;
     align-items: center;
+}
+
+.sirv-js-modules label{
+    display: inline-block;
+}
+
+.sirv-wai-container {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.sirv-wai-button {
+    margin-right: 5px;
+}
+
+.sirv-wai-button button {
+    height: 33px;
 }
 

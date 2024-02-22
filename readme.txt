@@ -4,7 +4,7 @@ Donate link: https://sirv.com/
 Tags: compress, optimize, image, resize, CDN
 Requires PHP: 5.6
 Requires at least: 3.0.1
-Tested up to: 6.4.2
+Tested up to: 6.4.3
 Stable tag: 4.7.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -238,6 +238,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 7.2.1 =
+* Added fix for duplicated images in categories.
+* Imroved work with classic editor.
+* Added role checking for some actions to improve security. Add, upload, edit sirv content now can only users that have possibility to edit posts. Usualy Superadmin, Admin and Editor.
+* Added option to migrate images from the plugin WooCommerce Additional Variation Images to the Sirv product gallery.
+* Removed deprecated jQuery functions from the codebase.
+* Small fixes and optimizations.
 
 = 7.2.0 =
 * Added category image profiles.

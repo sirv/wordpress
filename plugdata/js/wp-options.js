@@ -116,7 +116,7 @@ jQuery(function ($) {
             $('.sirv-tab-content').removeClass('sirv-tab-content-active');
             $('.nav-tab-wrapper > a').removeClass('nav-tab-active');
             $('.sirv-tab-content' + $object.attr('href')).addClass('sirv-tab-content-active');
-            $object.addClass('nav-tab-active').blur();
+            $object.addClass("nav-tab-active").trigger("blur");
             $('#active_tab').val($object.attr('href'));
             let hash = $object.attr('data-link');
             window.location.hash = hash;
@@ -150,12 +150,11 @@ jQuery(function ($) {
                 $passInput.attr('type', 'password');
                 $toggleIcon.removeClass('dashicons-hidden').addClass('dashicons-visibility');
             }
-            //$passInput.focus();
             $passInput.trigger('focus');
         }
 
 
-        $('.sirv-pass').keyup(function (e) {
+        $('.sirv-pass').on('keyup', function (e) {
             if (e.keyCode == 13) {
                 $('.sirv-init').trigger('click');
             }
@@ -758,7 +757,7 @@ jQuery(function ($) {
 
 
         //sanitize folder name on sirv
-        $('#sirv-save-options').submit(function () {
+        $('#sirv-save-options').on('submit', function () {
             let folderOnSirv = $("[name='SIRV_FOLDER']").val();
             let sanitizedFolderOnSirv = folderOnSirv == '' ? 'WP_SirvMediaLibrary' : folderOnSirv.replace(/^[\/]*(.*?)[\/]*$/ig, '$1');
             $("[name='SIRV_FOLDER']").val(sanitizedFolderOnSirv);
@@ -2210,7 +2209,7 @@ jQuery(function ($) {
 
             e.preventDefault();
             e.stopPropagation();
-            $(this).blur();
+            $(this).trigger( "blur");
 
             isNewAccount = !isNewAccount;
 
@@ -2539,14 +2538,17 @@ jQuery(function ($) {
 
 
         function getSirvJsCompressedSize(modules){
-            const pureUrl = $("#sirv-js-modules-store").attr('data-original-sirvjs-url');
             $.ajax({
                 url: ajaxurl,
-                data: {action: 'sirv_get_js_module_size', url: `${pureUrl}?modules=${modules}`},
+                data: {
+                    action: 'sirv_get_js_module_size',
+                    modules: modules,
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
+                },
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function (){
-                  //$(".sirv-compressed-js-val").text('Calc...');
+                  //code here
                 },
             }).done(function (res) {
                 //debug
@@ -2590,6 +2592,70 @@ jQuery(function ($) {
                 $("input[name=SIRV_PARSE_VIDEOS][value=on]").prop('disabled', true);
                 $("input[name=SIRV_PARSE_VIDEOS][value=off]").prop('checked', true);
             }
+        }
+
+
+        //migrate woo additional variation images data
+        $(".sirv-migrate-wai-data").on('click', migrateWAIData);
+        function migrateWAIData(){
+            $.ajax({
+                url: ajaxurl,
+                data: {
+                    action: 'sirv_migrate_wai_data',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
+                },
+                type: 'POST',
+                dataType: "json",
+                beforeSend: function (){
+                    $(".sirv-wai-bar-line-complited").addClass("sirv-progress-bar-animated");
+                    $(".sirv-migrate-wai-data").prop('disabled', true);
+                    $(".sirv-migrate-wai-data").text('Migrating...');
+                },
+            }).done(function (res) {
+                //debug
+                //console.log(res);
+
+                if(res.error){
+                    $('.sirv-wai-bar-line-complited').removeClass('sirv-progress-bar-animated');
+                    updateWAIProcessingStatus(res);
+                    showMessage('.sirv-migrate-wai-data-messages', res.error, 'sirv-migrate-wai-data-message', 'error');
+                    return;
+                }
+
+                if(res.synced_percent == 100){
+                    $('.sirv-wai-bar-line-complited').removeClass('sirv-progress-bar-animated');
+                    $block = $('.migrate-woo-additional-images-wrapper');
+                    $block.empty();
+                    $block.append(
+                        `<span class="sirv-option-responsive-text">If you use the WooCommerce Additional Variation Images plugin, you can migrate images from that plugin into Sirv. You don\'t need that plugin if you use Sirv.</span>
+                        <p>All images have been migrated. You may wish to uninstall the WooCommerce Additional Variation Images plugin.</p>`
+                    );
+                }else{
+                    updateWAIProcessingStatus(res);
+                    migrateWAIData();
+                }
+            }).fail(function (jqXHR, status, error) {
+                $('.sirv-wai-bar-line-complited').removeClass('sirv-progress-bar-animated');
+                $(".sirv-migrate-wai-data").prop("disabled", false);
+                $(".sirv-migrate-wai-data").text("Migrate");
+
+                showMessage('.sirv-migrate-wai-data-messages', error, 'sirv-migrate-wai-data-message', 'error');
+
+                console.error("Error during ajax request: " + error);
+            });
+        }
+
+
+        function updateWAIProcessingStatus(data){
+            //messages .sirv-migrate-wai-data-messages
+            //button .sirv-migrate-wai-data
+            //percent .sirv-wai-progress-text-persents
+            //count .sirv-wai-progress-text-complited
+            //bar .sirv-wai-bar-line-complited
+
+            $(".sirv-wai-progress-text-persents").text(data.synced_percent_text);
+            $(".sirv-wai-progress-text-complited span").text(`${data.synced} out of ${data.all}`);
+            $(".sirv-wai-bar-line-complited").css('width', data.synced_percent_text);
         }
 
         //-----------------------END sirv js modules------------------

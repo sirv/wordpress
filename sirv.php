@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.0
+ * Version:           7.2.1
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -14,17 +14,10 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-//error_log("You messed up!", 3, "/var/tmp/my-errors.log");
-//error_log('four ' . (microtime(true) - $time_pre) . PHP_EOL, 3, "/www/reee/public/wp-content/plugins/sirv/php_errors.log");
 
-/*ini_set("log_errors", 1);
-ini_set("error_log", "/tmp/php-error.log");
-error_log( "Hello, errors!" );*/
-
-define('SIRV_PLUGIN_VERSION', '7.2.0');
+define('SIRV_PLUGIN_VERSION', '7.2.1');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
-//define('SIRV_PLUGIN_PATH', plugin_dir_path(__FILE__));
 /// var/www/html/wordpress/wp-content/plugins/sirv/
 define('SIRV_PLUGIN_PATH', WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . SIRV_PLUGIN_DIR . DIRECTORY_SEPARATOR);
 // /var/www/html/wordpress/wp-content/plugins/sirv/plugdata/
@@ -1076,6 +1069,42 @@ function sirv_admin_notices(){
 
   sirv_review_notice();
   sirv_empty_logins_notice();
+  sirv_oversize_storage_notice();
+}
+
+
+function sirv_oversize_storage_notice(){
+  $notice_id = 'sirv_oversize_storage';
+
+  $storage_data = sirv_getStorageInfo();
+  $notice = '';
+  $notice_type = 'warning';
+  $dismiss_type = 'noticed';
+  $is_renew_status = false;
+
+  $used_persent = floatval($storage_data['storage']['used_percent']);
+
+  //Array ( [allowance] => 100000000000 [allowance_text] => 100 GB [used] => 1580035064 [available] => 98419964936 [available_text] => 98.42 GB [available_percent] => 98.42 [used_text] => 1.58 GB [used_percent] => 1.58 [files] => 2610 )
+  $allowance = Utils::getFormatedFileSize($storage_data['storage']['allowance']);
+  $used = $storage_data['storage']['used_text'];
+
+  $used_persent = 96;
+
+  if($used_persent < 95) return;
+
+  if($used_persent >= 95 && $used_persent < 100){
+    $notice = '<h3>Sirv</h3><p><strong>Storage low</strong> - you are using '. $used .' of your '. $allowance . ' storage allowance. For more storage, <a target="_blank" href="https://my.sirv.com/#/account/billing">upgrade your Sirv plan.</a></p>';
+    $dismiss_type = 'noticed';
+  }
+//Storage exceeds 100% - you are using 5.28 GB of your 5 GB storage allowance. Please, upgrade your Sirv plan.
+  if($used_persent >= 100){
+    $notice = '<h3>Sirv</h3><p><strong>Storage exceeds 100%</strong> - you are using ' . $used . ' of your ' . $allowance . ' storage allowance. Please, <a target="_blank" href="https://my.sirv.com/#/account/billing">upgrade your Sirv plan</a> to get more storage space.</p>';
+    $notice_type = 'error';
+    $dismiss_type = 'option_pages';
+    $is_renew_status = true;
+  }
+
+  echo sirv_get_wp_notice($notice, $notice_id, $notice_type, true, $dismiss_type, $is_renew_status);
 }
 
 
@@ -1095,7 +1124,7 @@ function sirv_depreceted_v2_notice(){
   $notice_id = 'sirv_deprecated_v2';
   $notice_status = get_option($notice_id);
 
-  if( !$notice_status || $notice_status != 'noticed'){
+  if( !$notice_status || $notice_status != 'dismiss'){
     $notice = '<p><b>Sirv update coming</b> - in August 2021, the new sirv.js version will replace the original sirv.js version. We recommend you switch to the new version soon - it\'s fast, elegant and gives you more options for making beautiful galleries.</p>
       <p>Simply go to your <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH  . 'options.php">Sirv settings page</a> and set "Sirv JS version" to "Sirv JS v3". Then check that your website galleries look great. <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/feedback.php">Contact us</a> if you need any help. We hope you\'ll love it!</p>';
 
@@ -1122,14 +1151,67 @@ function sirv_empty_logins_notice(){
 }
 
 
-function sirv_get_wp_notice($msg, $notice_id, $notice_type = 'info', $is_dismissible = true){
-  //notice-error, notice-warning, notice-success, or notice-info
-  //maybe add option for dismiss: temporary dismiss or permanent;
-  if( $is_dismissible ) wp_enqueue_script('sirv_review', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-dismiss-notice.js', array('jquery'), '1.0.0', true);
-  $dismissible = $is_dismissible ? 'is-dismissible' : '';
-  $notice = '<div data-notice-id='. $notice_id .' class="sirv-admin-notice notice notice-' . $notice_type . ' ' . $dismissible . '">' . $msg . '</div>';
+// data-dismiss-notice-type: "dismiss", "noticed", "option_pages", "current_day", "day", array("dismiss_type" => 'custom', "custom_time" => time in seconds )
+// dismiss - no logic, show on every page load
+// noticed - does not show message ever
+// option_pages - show message only on options page
+// current_day - don't show message during current day
+// day - does not show message 24 hours from time when message closed
+// custom array - does not show message for some period of time
+//
+//$notice_type: error, warning, success, info
+function sirv_get_wp_notice($msg, $notice_id, $notice_type = 'info', $is_dismissible = true, $dismiss_notice_type = 'dismiss', $is_renew_status = false){
+  $custom_time = 0;
+  $option_pages = array(
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'options.php',
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'shortcodes-view.php',
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'media_library.php',
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/account.php',
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/help.php',
+    SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/feedback.php',
+  );
+  $trainsient_statuses = array('current_day', 'day', 'custom');
 
-  return $notice;
+  $style = "
+    <style>
+      .sirv-admin-notice h3 {
+        margin-bottom: 0px;
+        margin-top: 10px;
+      }
+    </style>
+  " . PHP_EOL;
+  $current_status = get_option($notice_id);
+
+  if( is_array($dismiss_notice_type) ){
+    $custom_time = $dismiss_notice_type['custom_time'];
+    $dismiss_notice_type = $dismiss_notice_type['dismiss_type'];
+  }
+
+  $current_status = empty($current_status) ? 'dismiss' : $current_status;
+
+  if( !$is_renew_status ){
+    if ($current_status == 'noticed') return;
+
+    if ($current_status == 'option_pages') {
+      $is_page = isset($_GET['page']);
+      if (!$is_page || ($is_page && !in_array($_GET['page'], $option_pages))) return;
+    }
+
+    if (in_array($current_status, $trainsient_statuses)) {
+      $trainsient_status = get_transient($notice_id);
+      if ($trainsient_status) return;
+    }
+  }
+
+
+  if( $is_dismissible ) wp_enqueue_script('sirv_review', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-dismiss-notice.js', array('jquery'), '1.0.0', true);
+
+  $dismissible = $is_dismissible ? 'is-dismissible' : '';
+  $dismiss_type_attr = $is_dismissible ? ' data-sirv-dismiss-type="'. $dismiss_notice_type .'" ' : '';
+  $custom_time_attr = $dismiss_notice_type == 'custom' ? ' data-sirv-custom-time="'. $custom_time .'" ' : '';
+
+  $notice = '<div data-sirv-notice-id="'. $notice_id .'" class="sirv-admin-notice notice notice-'. $notice_type .' '. $dismissible .'"'. $dismiss_type_attr . $custom_time_attr .'>'. $msg .'</div>';
+  return $style . $notice;
 }
 
 
@@ -1260,13 +1342,16 @@ function sirv_button($editor_id = 'content'){
   wp_enqueue_style('sirv_style');
   wp_register_style('sirv_mce_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-sirv-shortcode-view.css');
   wp_enqueue_style('sirv_mce_style');
+
   wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), false);
   wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
     'ajaxurl' => admin_url('admin-ajax.php'),
+    'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
     'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
-    'plugin_subdir_path' => SIRV_PLUGIN_RELATIVE_SUBDIR_PATH)
+    'plugin_subdir_path' => SIRV_PLUGIN_RELATIVE_SUBDIR_PATH),
   );
   wp_enqueue_script('sirv_logic');
+
   wp_enqueue_script('sirv_logic-md5', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-md5.min.js', array(), false);
   wp_enqueue_script('sirv_modal', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-bpopup.min.js', array('jquery'), false);
   wp_enqueue_script('sirv_modal-logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-modal.js', array('jquery', 'sirv_modal', 'sirv_logic-md5'), false);
@@ -1347,11 +1432,13 @@ function sirv_admin_scripts(){
       wp_register_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), '1.1.0');
       wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
+        'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
         'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets',
         'plugin_subdir_path' => SIRV_PLUGIN_RELATIVE_SUBDIR_PATH,
         'sirv_cdn_url' => get_option('SIRV_CDN_URL'))
       );
       wp_enqueue_script('sirv_logic');
+
       wp_enqueue_script('sirv_logic-md5', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-md5.min.js', array(), '1.0.0');
       wp_enqueue_script('sirv_modal', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-bpopup.min.js', array('jquery'), '1.0.0');
       wp_enqueue_script('sirv_modal-logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-modal.js', array('jquery', 'sirv_modal', 'sirv_logic-md5'), false);
@@ -1413,6 +1500,7 @@ function sirv_admin_scripts(){
     wp_enqueue_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), false);
     wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
+        'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
       'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets')
     );
     wp_enqueue_script('sirv_logic-md5', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-md5.min.js', array(), '1.0.0');
@@ -2219,7 +2307,7 @@ function sirv_the_content($content, $type='content'){
     $ext_types[] = "image";
   }
 
-  $file_exts = sirv_get_file_extensions($ext_types);
+  $file_exts = sirv_get_file_extensions_by_type($ext_types);
   $file_exts_str = implode("|", $file_exts);
 
   /* $image_pattern = '/<img[^<]+?(' . $quoted_base_url . '\/([^\s]*?)(\-[0-9]{1,}(?:x|&#215;)[0-9]{1,})?\.((?:' . $file_exts_str . ')))[^>]+?>/ims'; */
@@ -2260,7 +2348,7 @@ function sirv_the_content($content, $type='content'){
       $relative_filepath = $relative_path_without_ext . '.' . $ext;
       $scaled_relative_path = $relative_path_without_ext . '-scaled.' . $ext;
 
-      $is_video = in_array($ext, sirv_get_file_extensions("video"));
+      $is_video = in_array($ext, sirv_get_file_extensions_by_type("video"));
 
       //TODO: find img data in sirv_images instead of get_post_meta. Maybe it will be quiqlier? but to mach work
       //TODO: add indexes to the img_path and sirv_path to find needed img faster? Can be issue with insert new rows.
@@ -2447,7 +2535,7 @@ function sirv_wp_get_attachment_image_src($image, $attachment_id, $size, $icon){
 
   if( sirv_is_sirv_item($image[0])){
     $post = get_post($attachment_id);
-    if((int) $post->post_author === 5197000){
+    if ( isset($post->post_author) && (int) $post->post_author === 5197000 ) {
       $isCrop = isset($image[3]) ? (bool) $image[3] : false;
       $image[0] = sirv_get_parametrized_url($image[0], $size, $isCrop, $attachment_id);
 
@@ -2517,13 +2605,8 @@ function sirv_get_parametrized_url($sirv_url, $size = null, $isCrop=false){
 }
 
 
-function sirv_get_file_extensions($ext_types){
-  $extensions_by_type = array(
-    "image" => array("tif", "tiff", "bmp", "jpg", "jpeg", "gif", "png", "apng", "svg", "webp", "heif", "avif", "ico"),
-    "video" => array("mp4", "mpg", "mpeg", "mov", "qt", "webm", "avi", "mp2", "mpe", "mpv", "ogg", "m4p", "m4v", "wmv"),
-    "model" => array("glb", "gltf"),
-    "audio" => array("mp3", "wav", "ogg", "flac", "aac", "wma", "m4a"),
-  );
+function sirv_get_file_extensions_by_type($ext_types){
+  $extensions_by_type = Utils::get_file_extensions();
 
   $extensions_keys = array_keys($extensions_by_type);
 
@@ -2558,7 +2641,7 @@ function sirv_is_allowed_ext($url){
       $ext_types[] = 'video';
     }
 
-    $accessible_ext = sirv_get_file_extensions($ext_types);
+    $accessible_ext = sirv_get_file_extensions_by_type($ext_types);
     $url_path = parse_url($url, PHP_URL_PATH);
     $current_ext = pathinfo($url_path, PATHINFO_EXTENSION);
   } catch (Exception $e) {
@@ -2599,7 +2682,7 @@ function sirv_wp_get_attachment_url($url, $attachment_id){
 
   if (sirv_is_sirv_item($url)) {
     $post = get_post($attachment_id);
-    if ((int) $post->post_author === 5197000) {
+    if ( isset($post->post_author) && (int) $post->post_author === 5197000 ) {
       $url = sirv_get_parametrized_url($url);
 
       return $url;
@@ -2633,7 +2716,7 @@ function sirv_add_custom_image_srcset($sources, $size_array, $image_src, $image_
   if (sirv_is_sirv_item($image_src)) {
 
     $post = get_post($attachment_id);
-    if ((int) $post->post_author === 5197000) {
+    if ( isset($post->post_author) && (int) $post->post_author === 5197000 ) {
       foreach ($image_meta["sizes"] as $size_name => $size_data) {
         $w_size = $size_data['width'];
         $h_size = $size_data['height'];
@@ -2663,7 +2746,7 @@ function sirv_add_custom_image_srcset($sources, $size_array, $image_src, $image_
 
     $wp_sizes = sirv_get_image_sizes();
 
-    $image_exts = sirv_get_file_extensions('image');
+    $image_exts = sirv_get_file_extensions_by_type('image');
     $image_exts_str = implode("|", $image_exts);
 
     $regexp_size_pattern = '/^[^\s]*?\-([0-9]{1,})(?:x|&#215;)([0-9]{1,})\.(' . $image_exts_str . ')/i';
@@ -3052,7 +3135,7 @@ function sirv_set_db_failed($wpdb, $table, $attachment_id, $paths, $error_type =
 }
 
 
-function sirv_get_cdn_image($attachment_id, $wait = false){
+function sirv_get_cdn_image($attachment_id, $wait = false, $is_synchronious = false){
   global $wpdb;
   global $isFetchUpload;
   global $isFetchUrl;
@@ -3111,8 +3194,8 @@ function sirv_get_cdn_image($attachment_id, $wait = false){
     $headers = array();
 
     if ( !isset($paths['img_file_path']) ) {
-      if( sirv_is_sirv_item($paths['wrong_file']) ){
-        return sirv_set_sirv_item_to_db($paths['wrong_file'], $wpdb, $sirv_images_t, $attachment_id);
+      if( isset($paths['sirv_item']) ){
+        return sirv_set_sirv_item_to_db($paths['sirv_item'], $wpdb, $sirv_images_t, $attachment_id);
       }else {
         sirv_set_db_failed($wpdb, $sirv_images_t, $attachment_id, $paths);
         return '';
@@ -3204,10 +3287,10 @@ function sirv_get_cdn_image($attachment_id, $wait = false){
     $isFetchUpload = (int) $image['size'] < $fetch_max_file_size ? true : false;
     $isFetchUpload = $isFetchUrl ? true : $isFetchUpload;
 
-    $file = sirv_uploadFile($image['sirv_full_path'], $image['sirv_full_path_encoded'], $image['img_file_path'], $img_data, $image['image_full_url'], $wait);
+    $file = sirv_uploadFile($image['sirv_full_path'], $image['sirv_full_path_encoded'], $image['img_file_path'], $img_data, $image['image_full_url'], $wait, $is_synchronious);
 
-    if (is_array($file)) {
-      if ($file['status'] == 'uploaded') {
+    if ( is_array($file) ) {
+      if ($file['upload_status'] == 'uploaded') {
         $wpdb->update($sirv_images_t, array(
           'timestamp_synced' => date("Y-m-d H:i:s"),
           'status' => 'SYNCED'
@@ -3219,7 +3302,7 @@ function sirv_get_cdn_image($attachment_id, $wait = false){
       } else {
         $wpdb->update($sirv_images_t, array(
           'status' => 'FAILED',
-          'error_type' => 6
+          'error_type' => $file['error_type'],
         ), array('attachment_id' => $attachment_id));
 
         return '';
@@ -3264,6 +3347,15 @@ function sirv_get_cdn_image($attachment_id, $wait = false){
 
 
 function sirv_set_sirv_item_to_db($url, $wpdb, $sirv_images_t, $attachment_id){
+  list($response, $data) = sirv_generate_sirv_item_db_data($url, $attachment_id);
+
+  $wpdb->replace($sirv_images_t, $data);
+
+  return $response;
+}
+
+
+function sirv_generate_sirv_item_db_data($url, $attachment_id){
   $response = '';
   $data = array(
     'attachment_id' => $attachment_id,
@@ -3274,20 +3366,18 @@ function sirv_set_sirv_item_to_db($url, $wpdb, $sirv_images_t, $attachment_id){
 
   $headers = Utils::get_head_request($url);
 
-  if( sirv_is_sirv_item_http_status_ok($headers) ){
+  if (sirv_is_sirv_item_http_status_ok($headers)) {
     $data['status'] = 'SYNCED';
     $data['timestamp_synced'] = date("Y-m-d H:i:s");
     $data['size'] = $headers['Content-Length'] ? $headers['Content-Length'] : NULL;
 
     $response = $url;
-  }else {
+  } else {
     $data['status'] = 'FAILED';
     $data['error_type'] = 7;
   }
 
-  $wpdb->replace($sirv_images_t, $data);
-
-  return $response;
+  return array($response, $data);
 }
 
 
@@ -3331,6 +3421,14 @@ function sirv_get_wp_img_file_path($attachment_id){
 
   if (!$img_file_path) return array('wrong_file' => 'File name/path missing from WordPress media library');
 
+  if(sirv_is_sirv_item($img_file_path)){
+    $exclude_path = $url_images_path . '/';
+    $sirv_path = str_replace($exclude_path, '', $img_file_path);
+    return array(
+      'sirv_item' => $sirv_path,
+    );
+  }
+
   if (stripos($img_file_path, $root_images_path) === false) {
     if (file_exists($img_file_path)) {
       if (stripos($img_file_path, '/wp-content/uploads/') !== false) {
@@ -3355,7 +3453,7 @@ function sirv_get_paths_info($attachment_id){
 
   //$wp_img_path_data = sirv_get_wp_img_file_path($attachment_id);
   $wp_img_path_data = sirv_get_cached_wp_img_file_path($attachment_id);
-  if (isset($wp_img_path_data['wrong_file'])) return $wp_img_path_data;
+  if (isset($wp_img_path_data['wrong_file']) || isset($wp_img_path_data['sirv_item']) ) return $wp_img_path_data;
 
   $sirv_folder = get_option('SIRV_FOLDER');
 
@@ -3705,13 +3803,21 @@ function sirv_getAPIClient(){
 }
 
 
-function sirv_uploadFile($sirv_path, $sirv_path_encoded, $image_path, $img_data, $imgURL = '', $wait = false){
+function sirv_uploadFile($sirv_path, $sirv_path_encoded, $image_path, $img_data, $imgURL = '', $wait = false, $is_synchronious = false){
+  if( sirv_isMuted() ) return false;
+
   global $isLocalHost;
   global $isFetchUpload;
   $APIClient = sirv_getAPIClient();
 
   if ($isLocalHost || !$isFetchUpload) {
-    return $APIClient->uploadImage($image_path, $sirv_path_encoded);
+    $response = $APIClient->uploadImage($image_path, $sirv_path_encoded);
+
+    if( $response['upload_status'] == 'failed' ){
+      $response['error_type'] = 6;
+    }
+
+    return $response;
   } else {
     $fetch_data = array(
       'imgURL'        => $imgURL,
@@ -3722,9 +3828,12 @@ function sirv_uploadFile($sirv_path, $sirv_path_encoded, $image_path, $img_data,
       'auth'          => sirv_get_http_auth_credentials(),
     );
 
-    $GLOBALS['sirv_fetch_queue'][$imgURL] = $fetch_data;
-
-    return false;
+    if( $is_synchronious ){
+      return sirv_proccess_synchronious_fetch($fetch_data);
+    }else{
+      $GLOBALS['sirv_fetch_queue'][$imgURL] = $fetch_data;
+      return false;
+    }
   }
 }
 
@@ -3746,6 +3855,40 @@ function sirv_get_http_auth_credentials(){
   }
 
   return $data;
+}
+
+function sirv_proccess_synchronious_fetch($image){
+  //$uploaded_status => failed, uploaded
+  $response = array("upload_status" => 'failed');
+
+  $APIClient = sirv_getAPIClient();
+
+  $fetch_data = array(
+    'url'       =>  $image['imgURL'],
+    'filename'  =>  $image['sirvFileName'],
+    'wait'      =>  (bool) $image['wait'],
+  );
+
+  if (isset($image['auth']) && !empty($image['auth'])) {
+    $fetch_data['auth'] = $image['auth'];
+  }
+
+  $res = $APIClient->fetchImage($fetch_data);
+
+  if( $res ){
+    if ( !empty($res->result) && is_array($res->result) ) {
+      list($status, $error_type) = array_values(sirv_parse_fetch_data($res->result[0], $image['wait'], $APIClient));
+
+      if ( $status == 'SYNCED' ) {
+        $response['upload_status'] = 'uploaded';
+      }
+
+      $response['status'] = $status;
+      $response['error_type'] = $error_type;
+    }
+  }
+
+  return $response;
 }
 
 
@@ -4001,7 +4144,7 @@ function sirv_getErrorsInfo(){
 
 
 function sirv_getStorageInfo($force_update = false){
-  $hided_apies = array("images:realtime", "zips2:create");
+  $hided_apies = array("images:realtime", "zips2:create", "s3:global", "s3:PUT", "s3:GET", "s3:DELETE", "ftp:global", "ftp:STOR", "ftp:RETR", "ftp:DELE");
 
   $cached_stat = get_option('SIRV_STAT');
 
@@ -4009,6 +4152,8 @@ function sirv_getStorageInfo($force_update = false){
     $storageInfo = @unserialize($cached_stat);
     if (is_array($storageInfo) && time() - $storageInfo['time'] < 60 * 60) {
       $storageInfo['data']['lastUpdate'] = date("H:i:s e", $storageInfo['time']);
+
+      $storageInfo["data"]["limits"] = sirv_filter_limits_info($storageInfo["data"]["limits"], $hided_apies);
 
       return $storageInfo['data'];
     }
@@ -4303,7 +4448,13 @@ function sirv_clear_cache_callback(){
 add_action('wp_ajax_sirv_get_content', 'sirv_get_content');
 function sirv_get_content(){
   if (!(is_array($_POST) && isset($_POST['path']) && defined('DOING_AJAX') && DOING_AJAX)) {
-    return;
+    echo json_encode(array('error' => 'Action denied'));
+    wp_die();
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $sirv_path = empty($_POST['path']) ? '/' : $_POST['path'];
@@ -4420,6 +4571,12 @@ function sirv_upload_files_callback(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+
   $imagePaths =  json_decode(stripslashes($_POST['imagePaths']), true);
 
   $current_dir = stripslashes($_POST['current_dir']);
@@ -4466,6 +4623,11 @@ add_action('wp_ajax_sirv_upload_file_by_chanks', 'sirv_upload_file_by_chanks_cal
 function sirv_upload_file_by_chanks_callback(){
   if (!(is_array($_POST) && isset($_POST['binPart']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $arr_content = array();
@@ -4535,6 +4697,27 @@ function sirv_upload_file_by_chanks_callback(){
     }
   }
 
+  wp_die();
+}
+
+
+add_action('wp_ajax_sirv_migrate_wai_data', 'sirv_migrate_wai_data');
+function sirv_migrate_wai_data(){
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    echo json_encode(array("error" => "Ajax action does not possible or missed data."));
+    wp_die();
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+  require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/woo.additional.images.migrate.class.php');
+
+  $result = WooAdditionalImagesMigrate::migrate(1);
+
+  echo json_encode($result);
   wp_die();
 }
 
@@ -4790,6 +4973,12 @@ function sirv_add_folder(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+
   $path = $_POST['current_dir'] . $_POST['new_dir'];
 
   $APIClient = sirv_getAPIClient();
@@ -4832,10 +5021,29 @@ function sirv_dismiss_notice(){
   }
 
   $notice_id = $_POST['notice_id'];
+  $dismiss_type = $_POST['dismiss_type'];
+  $custom_time = intval($_POST['custom_time']);
 
-  update_option($notice_id, 'noticed');
+  if (in_array($dismiss_type, array('current_day', 'day', 'custom'))){
+    if ($dismiss_type == 'current_day') {
+      $start_datetime = new DateTimeImmutable();
+      $end_datetime = new DateTimeImmutable('tomorrow');
+      $diff = $end_datetime->getTimestamp() - $start_datetime->getTimestamp();
+      set_transient($notice_id, true, $diff);
+    }
 
-  echo 'Notice ' . $notice_id . ' dismissed';
+    if ($dismiss_type == 'day') {
+      set_transient($notice_id, true, DAY_IN_SECONDS);
+    }
+
+    if ($dismiss_type == 'custom'){
+      set_transient($notice_id, true, $custom_time);
+    }
+  }
+
+  update_option($notice_id, $dismiss_type);
+
+  echo 'Notice ' . $notice_id . ' set status to ' . $dismiss_type;
 
   wp_die();
 }
@@ -4846,6 +5054,11 @@ add_action('wp_ajax_sirv_delete_files', 'sirv_delete_files');
 function sirv_delete_files(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $filenames = $_POST['filenames'];
@@ -5255,6 +5468,11 @@ function sirv_get_search_data(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/query-string.class.php');
 
   $c_query = new QueryString($_POST['search_query']);
@@ -5292,6 +5510,11 @@ function sirv_copy_file(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $file_path = stripslashes($_POST['filePath']);
   $copy_path = stripslashes($_POST['copyPath']);
 
@@ -5309,6 +5532,11 @@ add_action('wp_ajax_sirv_rename_file', 'sirv_rename_file');
 function sirv_rename_file(){
   if (!(is_array($_POST) && isset($_POST['filePath']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $file_path = $_POST['filePath'];
@@ -5663,7 +5891,7 @@ function sirv_upload_css_images($data){
         sirv_set_session_data('sirv-css-sync-images', 'css_sync_data', $css_sync_data);
       } else {
         $result = $APIClient->uploadImage($img_full_path, $full_css_path . $img_name);
-        if ($result['status'] == 'uploaded') {
+        if ($result['upload_status'] == 'uploaded') {
           $img_cache[] = $img_full_path;
           $rendered_css[] = sirv_render_sirv_class($item, $full_css_img_path . $img_name);
           $css_sync_data['msg'] = 'Uploaded ' . count($rendered_css) . ' images...';
@@ -6072,10 +6300,18 @@ function sirv_save_prevented_sizes(){
 add_action('wp_ajax_sirv_get_js_module_size', 'sirv_get_js_module_size', 10);
 function sirv_get_js_module_size(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
-    return;
+    echo json_encode(array('error' => 'Action denied'));
+    wp_die();
   }
-  $url = $_POST['url'];
-  $sizes = sirv_get_js_compressed_size($url);
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+  $modules = $_POST['modules'];
+  $url = getValue::getJsFileUrl();
+  $sizes = sirv_get_js_compressed_size("$url?modules=$modules");
 
   if(is_null($sizes['compressed']) && is_null($sizes['error'])){
     $sizes['error'] = 'Cannot calculate js bundle size';

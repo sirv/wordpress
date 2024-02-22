@@ -952,12 +952,27 @@ $admin_layout_options = array(
   ),
 );
 
+$tools_options = array(
+  'unreg_migrate_woo_additional_images' => array(
+    'enabled_option' => true,
+    'option_name' => 'migrate_woo_additional_images',
+    'label' => 'WooCommerce Additional Variation Images',
+    'description' => 'If you use the WooCommerce Additional Variation Images plugin, you can migrate images from that plugin into Sirv. You don\'t need that plugin if you use Sirv.',
+    'is_new_line' => true,
+    'type' => 'custom',
+    'func' => 'render_migrate_woo_additional_images',
+    'custom_type' => 'table',
+    'value' => '',
+  ),
+);
+
 
 $options = array(
   "SMV" => array(
     "title" => 'Sirv Media Viewer for WooCommerce',
     "description" => 'Image zoom, 360 spin and product videos to make your products look glorious. Replaces your existing media gallery with <a target="_blank" href="https://sirv.com/help/articles/sirv-media-viewer/">Sirv Media Gallery</a> on your product pages.',
     "id" => 'woo-sirv-media-viewer',
+    "show_save_button" => true,
     "options" => $smv_options
   ),
   "CONTENT" => array(
@@ -966,31 +981,43 @@ $options = array(
 
 Upload files at <a href="https://my.sirv.com/" target="_blank">my.sirv.com</a> or by <a href="https://my.sirv.com/#/account/settings/api" target="_blank">FTP</a>.',
     "id" => 'woo-content',
+    "show_save_button" => true,
     "options" => $content_options
   ),
   "ORDER" => array(
     "title" => 'Order of content',
     "description" => 'Choose which items to show and what order thumbnails should appear in.',
     "id" => 'woo-order',
+    "show_save_button" => true,
     "options" => $order_options
   ),
   "CATEGORIES" => array(
     "title" => "Category page images<sup><span style=\"color: orange;\">beta</span></sup></h3>",
     "description" => "Image settings for category listings and search results pages.",
     "id" => "woo-categories",
+    "show_save_button" => true,
     "options" => $cat_options
   ),
   "DESIGN" => array(
     "title" => 'Design and experience',
     "description" => 'Go to the <a href="https://sirv.com/help/viewer/" target="_blank">Sirv Media Viewer designer</a> to create the perfect experience for your store. ',
     "id" => 'woo-design',
+    "show_save_button" => true,
     "options" => $design_options
   ),
   "ADMIN_LAYOUT" => array(
     "title" => 'Admin layout',
     "description" => 'Choose which Sirv blocks to show in WordPress admin.',
     "id" => 'woo-admin-layout',
+    "show_save_button" => true,
     "options" => $admin_layout_options
+  ),
+  "TOOLS" => array(
+    "title" => 'Additional tools',
+    "description" => 'Tools for automation and image management.',
+    "id" => 'woo-tools',
+    "show_save_button" => false,
+    "options" => $tools_options
   ),
 );
 

@@ -24,9 +24,14 @@
 
         wp_register_style('sirv_style', plugins_url('css/wp-sirv.css', __FILE__));
         wp_enqueue_style('sirv_style');
-        wp_enqueue_script( 'sirv_logic', plugins_url('js/wp-sirv.js', __FILE__), array( 'jquery', 'jquery-ui-sortable', 'sirv_toast_js' ), false);
 
-        wp_localize_script( 'sirv_logic', 'sirv_ajax_object', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ), 'assets_path' => plugins_url('assets', __FILE__) ) );
+        wp_enqueue_script( 'sirv_logic', plugins_url('js/wp-sirv.js', __FILE__), array( 'jquery', 'jquery-ui-sortable', 'sirv_toast_js' ), false);
+        wp_localize_script( 'sirv_logic', 'sirv_ajax_object', array(
+            'ajaxurl' => admin_url( 'admin-ajax.php' ),
+            'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
+            'assets_path' => plugins_url('assets', __FILE__),
+        ));
+
         wp_enqueue_script( 'sirv_media_library_logic', plugins_url('js/wp-sirv-media-library.js', __FILE__), array( 'jquery'), false);
         wp_enqueue_script( 'sirv_logic-md5', plugins_url('js/vendor/wp-sirv-md5.min.js', __FILE__), array(), '1.0.0');
 

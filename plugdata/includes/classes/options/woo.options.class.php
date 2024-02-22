@@ -205,6 +205,55 @@ class Woo_options extends Options_generator{
 
     return $html;
   }
+
+
+  protected static function render_migrate_woo_additional_images($option){
+    require_once(SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/woo.additional.images.migrate.class.php');
+
+    $info = WooAdditionalImagesMigrate::get_wai_data_info();
+
+    /* $info->unsynced = 0; */
+    /* $info->all = 0; */
+
+    if($info->unsynced == 0){
+      if( $info->all == 0 ){
+        $html = '<p>This plugin was not detected.</p>';
+      }else{
+        $html = '<p>All images have been migrated. You may wish to uninstall the WooCommerce Additional Variation Images plugin.</p>';
+      }
+    }else{
+      $html =
+        '<div class="sirv-wai-container">
+            <div class="sirv-wai-button">
+              <button class="button-primary sirv-migrate-wai-data" type="button">Migrate</button>
+            </div>
+            <div class="sirv-progress">
+            <div class="sirv-progress__text">
+              <div class="sirv-wai-progress-text-persents">'. $info->synced_percent_text . '</div>
+              <div class="sirv-progress-text-complited sirv-wai-progress-text-complited"><span>'. $info->synced .' out of '. $info->all .'</span> variations completed</div>
+            </div>
+            <div class="sirv-progress__bar">
+              <div class="sirv-wai-bar-line-complited sirv-complited" style="width: '. $info->synced_percent_text .';"></div>
+            </div>
+          </div>
+        </div>';
+    }
+
+    return '
+      <tr>
+        <th class="sirv-migrate-wai-data-messages no-padding" colspan="2">
+        </th>
+      </tr>
+      <tr>
+        <th>'. $option['label'] . '</th>
+        <td colspan="2">
+          <div class="migrate-woo-additional-images-wrapper">
+          <span class="sirv-option-responsive-text">' . $option['description'] . '</span><br><br>
+            '. $html .'
+          </div>
+        </td>
+      </tr>';
+  }
 }
 
 ?>

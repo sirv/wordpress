@@ -300,34 +300,36 @@
             return '';
           }
           ?>
-          <label>
-            <input type="checkbox" name="sirv_js_module_all" id="all-js-modules-switch" <?php echo $allChecked; ?> <?php echo $allDisabled; ?>>Select all
-          </label>
-          <hr>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="lazyimage" data-module="lazyimage" <?php echo sirv_check_js_module('lazyimage', $modules) ?>>Lazy & responsive images
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="zoom" data-module="zoom" <?php echo sirv_check_js_module('zoom', $modules) ?>>Image zoom
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="spin" data-module="spin" <?php echo sirv_check_js_module('spin', $modules) ?>>360 spin
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="hotspots" data-module="hotspots" <?php echo sirv_check_js_module('hotspots', $modules) ?>>Hotspots
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="video" data-module="video" <?php echo sirv_check_js_module('video', $modules) ?>>Video streaming
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="gallery" data-module="gallery" <?php echo sirv_check_js_module('gallery', $modules) ?>>
-            Gallery
-          </label>
-          <label>
-            <input type="checkbox" name="sirv_js_module" id="gallery" data-module="model" <?php echo sirv_check_js_module('model', $modules) ?>>
-            Model
-          </label>
-          <input type="hidden" id="sirv-js-modules-store" name="SIRV_JS_MODULES" data-original-sirvjs-url="<?php echo getValue::getJsFileUrl(); ?>" value="<?php echo $loadModules ?>">
+          <div class="sirv-js-modules">
+            <label>
+              <input type="checkbox" name="sirv_js_module_all" id="all-js-modules-switch" <?php echo $allChecked; ?> <?php echo $allDisabled; ?>>Select all
+            </label><br>
+            <hr>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="lazyimage" data-module="lazyimage" <?php echo sirv_check_js_module('lazyimage', $modules) ?>>Lazy & responsive images
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="zoom" data-module="zoom" <?php echo sirv_check_js_module('zoom', $modules) ?>>Image zoom
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="spin" data-module="spin" <?php echo sirv_check_js_module('spin', $modules) ?>>360 spin
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="hotspots" data-module="hotspots" <?php echo sirv_check_js_module('hotspots', $modules) ?>>Hotspots
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="video" data-module="video" <?php echo sirv_check_js_module('video', $modules) ?>>Video streaming
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="gallery" data-module="gallery" <?php echo sirv_check_js_module('gallery', $modules) ?>>
+              Gallery
+            </label><br>
+            <label>
+              <input type="checkbox" name="sirv_js_module" id="gallery" data-module="model" <?php echo sirv_check_js_module('model', $modules) ?>>
+              Model
+            </label>
+          </div>
+          <input type="hidden" id="sirv-js-modules-store" name="SIRV_JS_MODULES" value="<?php echo $loadModules ?>">
           <span class="sirv-option-responsive-text"><b>File size:</b> <span class="sirv-compressed-js-spinner sirv-traffic-loading-ico"></span><span class="sirv-compressed-js-val"><?php echo $compressedSizeStr; ?></span></span><br>
           <span class="sirv-option-responsive-text">Improve optimization by choosing only the features you need. Smaller JS files are faster to load and process.</span>
         </td>
