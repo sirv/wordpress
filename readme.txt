@@ -239,6 +239,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 7.2.2 =
+* Removed debug code.
+
 = 7.2.1 =
 * Added fix for duplicated images in categories.
 * Imroved work with classic editor.

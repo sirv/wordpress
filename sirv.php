@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.1
+ * Version:           7.2.2
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.1');
+define('SIRV_PLUGIN_VERSION', '7.2.2');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -1084,11 +1084,8 @@ function sirv_oversize_storage_notice(){
 
   $used_persent = floatval($storage_data['storage']['used_percent']);
 
-  //Array ( [allowance] => 100000000000 [allowance_text] => 100 GB [used] => 1580035064 [available] => 98419964936 [available_text] => 98.42 GB [available_percent] => 98.42 [used_text] => 1.58 GB [used_percent] => 1.58 [files] => 2610 )
   $allowance = Utils::getFormatedFileSize($storage_data['storage']['allowance']);
   $used = $storage_data['storage']['used_text'];
-
-  $used_persent = 96;
 
   if($used_persent < 95) return;
 
@@ -1096,7 +1093,7 @@ function sirv_oversize_storage_notice(){
     $notice = '<h3>Sirv</h3><p><strong>Storage low</strong> - you are using '. $used .' of your '. $allowance . ' storage allowance. For more storage, <a target="_blank" href="https://my.sirv.com/#/account/billing">upgrade your Sirv plan.</a></p>';
     $dismiss_type = 'noticed';
   }
-//Storage exceeds 100% - you are using 5.28 GB of your 5 GB storage allowance. Please, upgrade your Sirv plan.
+
   if($used_persent >= 100){
     $notice = '<h3>Sirv</h3><p><strong>Storage exceeds 100%</strong> - you are using ' . $used . ' of your ' . $allowance . ' storage allowance. Please, <a target="_blank" href="https://my.sirv.com/#/account/billing">upgrade your Sirv plan</a> to get more storage space.</p>';
     $notice_type = 'error';

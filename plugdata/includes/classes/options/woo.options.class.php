@@ -212,9 +212,6 @@ class Woo_options extends Options_generator{
 
     $info = WooAdditionalImagesMigrate::get_wai_data_info();
 
-    /* $info->unsynced = 0; */
-    /* $info->all = 0; */
-
     if($info->unsynced == 0){
       if( $info->all == 0 ){
         $html = '<p>This plugin was not detected.</p>';
