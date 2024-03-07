@@ -239,6 +239,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 7.2.3 =
+* Enabled permission for more roles to use Add Sirv Media. Roles now include: SuperAdmin, Admin, Editor, Author and Contributor.
+* Improved product gallery skeleton placeholder.
+* Added option to view up to 100 items at a time on Shortcodes page.
+* Added ability to filter items in product gallery, using "sirv_pdp_gallery". More information: https://sirv.com/help/articles/using-sirv-wordpress/#filter-items-in-the-product-gallery
+* Small fixes and optimizations.
+
 = 7.2.2 =
 * Removed debug code.
 

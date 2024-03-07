@@ -760,10 +760,12 @@ class Woo
   }
 
 
+  //order == 3 - sirv content only
   protected function get_all_images_data($main_image, $sirv_images, $wc_images, $sirv_variations, $order)
   {
-    $items = (object) array();
+    $items = array();
     $is_show_all_items = get_option('SIRV_WOO_SHOW_VARIATIONS') !== '2' ? true : false;
+    $is_empty_main_image = true;
 
     if ( (empty($sirv_images) && empty($wc_images)) || (empty($sirv_images) && $order == '3') ) {
       $is_empty_main_image = empty((array) $main_image);
@@ -772,19 +774,19 @@ class Woo
       }
     }
 
-    $items = $this->merge_items($order, $sirv_images, $wc_images);
+    $items = (array) $this->merge_items($order, $sirv_images, $wc_images);
 
-    $items = (object) array_merge((array) $items, (array) $sirv_variations);
+    $items = array_merge($items, (array) $sirv_variations);
 
-    if (!empty((array) $main_image)) {
-      $items = (array) $items;
+    if ( !$is_empty_main_image ) {
       array_unshift($items, $main_image);
-      $items = (object) $items;
     }
 
     if ($is_show_all_items) {
-      $items = $this->get_filtered_duplicates($items);
+      $items = (array) $this->get_filtered_duplicates($items);
     }
+
+    $items = (object) apply_filters("sirv_pdp_gallery", $items, $this->product_id);
 
     return $this->fix_order($items);
   }
@@ -821,6 +823,9 @@ class Woo
   {
     $unique_items = array();
     $arr_items = (array) $items;
+
+    if( empty($arr_items) ) return (object) $unique_items;
+
     $duplicates = array();
     for ($i = 0; $i < count($arr_items); $i++) {
       $item = $arr_items[$i];
@@ -867,7 +872,7 @@ class Woo
   {
     return (object) array(
       'url' => wc_placeholder_img_src('full'),
-      'type' => 'image',
+      'type' => 'wc_placeholder_image',
       'provider' => 'woocommerce',
       'viewId' => $this->product_id,
     );

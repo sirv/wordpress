@@ -8,6 +8,7 @@ jQuery(function($){
             if(!!notice_id){
                 $.post(ajaxurl,{
                     action: 'sirv_dismiss_notice',
+                    _ajax_nonce: sirv_dismiss_ajax_object.ajaxnonce,
                     notice_id : notice_id,
                     dismiss_type: dismiss_type,
                     custom_time: custom_time,

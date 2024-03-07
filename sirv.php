@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.2
+ * Version:           7.2.3
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.2');
+define('SIRV_PLUGIN_VERSION', '7.2.3');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -1148,6 +1148,8 @@ function sirv_empty_logins_notice(){
 }
 
 
+//TODO: logic with cyclic events like message about ovverriding storage.
+
 // data-dismiss-notice-type: "dismiss", "noticed", "option_pages", "current_day", "day", array("dismiss_type" => 'custom', "custom_time" => time in seconds )
 // dismiss - no logic, show on every page load
 // noticed - does not show message ever
@@ -1201,7 +1203,16 @@ function sirv_get_wp_notice($msg, $notice_id, $notice_type = 'info', $is_dismiss
   }
 
 
-  if( $is_dismissible ) wp_enqueue_script('sirv_review', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-dismiss-notice.js', array('jquery'), '1.0.0', true);
+  if( $is_dismissible ){
+
+    wp_register_script('sirv_review', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-dismiss-notice.js', array('jquery'), '1.0.0', true);
+    wp_localize_script('sirv_review', 'sirv_dismiss_ajax_object', array(
+      'ajaxnonce' => wp_create_nonce('sirv_rewiew_ajax_validation_nonce'),),
+    );
+
+    wp_enqueue_script('sirv_review');
+  }
+
 
   $dismissible = $is_dismissible ? 'is-dismissible' : '';
   $dismiss_type_attr = $is_dismissible ? ' data-sirv-dismiss-type="'. $dismiss_notice_type .'" ' : '';
@@ -2546,7 +2557,7 @@ function sirv_wp_get_attachment_image_src($image, $attachment_id, $size, $icon){
 
   $paths = sirv_get_cached_wp_img_file_path($attachment_id);
 
-  if (empty($paths) || isset($paths['wrong_file'])) return $image;
+  if ( empty($paths) || isset($paths['wrong_file']) || !isset($paths['img_file_path']) ) return $image;
 
   $root_url_images_path = $paths['url_images_path'];
 
@@ -4449,7 +4460,7 @@ function sirv_get_content(){
     wp_die();
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -4568,7 +4579,7 @@ function sirv_upload_files_callback(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -4622,7 +4633,7 @@ function sirv_upload_file_by_chanks_callback(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -4970,7 +4981,7 @@ function sirv_add_folder(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -5017,6 +5028,11 @@ function sirv_dismiss_notice(){
     wp_die();
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_rewiew_ajax_validation_nonce', 'edit_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $notice_id = $_POST['notice_id'];
   $dismiss_type = $_POST['dismiss_type'];
   $custom_time = intval($_POST['custom_time']);
@@ -5053,7 +5069,7 @@ function sirv_delete_files(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -5465,7 +5481,7 @@ function sirv_get_search_data(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -5507,7 +5523,7 @@ function sirv_copy_file(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -5531,7 +5547,7 @@ function sirv_rename_file(){
     return;
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_pages')) {
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }

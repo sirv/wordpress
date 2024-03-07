@@ -117,7 +117,6 @@ jQuery(function ($) {
 
 
     Sirv.on('viewer:ready', function (viewer) {
-      $(".sirv-skeleton-wrapper").removeClass("sirv-skeleton-wrapper");
       $('.sirv-skeleton').removeClass('sirv-skeleton');
       $('.sirv-woo-opacity-zero').addClass('sirv-woo-opacity');
       $instance = Sirv.viewer.getInstance('#sirv-woo-gallery_' + sirv_woo_product.mainID);

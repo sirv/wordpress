@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+defined('ABSPATH') or die('No script kiddies please!');
 ?>
 
 <style type="text/css">
@@ -84,13 +84,20 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     }
 
     .sirv-list-container .t-sh-name {
-    text-align: center;
-    font-size: 15px;
-}
+        text-align: center;
+        font-size: 15px;
+    }
 
     #bottom-buttons,
     #above-buttons {
         margin: 10px 0;
+    }
+
+    #above-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .sirv-pagination {
@@ -190,8 +197,19 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     <h1>Sirv shortcodes</h1>
     <p>Embed single images or galleries images, spins or zooms. Embed them in any page/post.</p>
     <div id="above-buttons">
-        <button style="margin-right: 5px; margin-top: 5px; " class="button sirv-delete-selected">Delete selected</button>
-        <a style="margin-right: 5px; margin-top: 5px; " class="button button-primary sirv-add-shortcode">Add shortcode</a>
+        <div class="sirv-shp-left-toolbar">
+            <button style="margin-right: 5px; margin-top: 5px; " class="button sirv-delete-selected">Delete selected</button>
+            <button style="margin-right: 5px; margin-top: 5px; " class="button button-primary sirv-add-shortcode">Add shortcode</button>
+            <!-- <a style="margin-right: 5px; margin-top: 5px; " class="button button-primary sirv-add-shortcode">Add shortcode</a> -->
+        </div>
+        <div class="sirv-shp-right-toolbar">
+            <div class="sirv-shp-count-wrap">
+                <span>Show on the page: </span>
+                <button class="button-primary sirv-shp-results-per-page" data-page-items="30">30</button>
+                <button class="button-primary sirv-shp-results-per-page" data-page-items="50">50</button>
+                <button class="button-primary sirv-shp-results-per-page" data-page-items="100">100</button>
+            </div>
+        </div>
     </div>
     <table class="sirv-shortcodes-list" cellspacing="0" cellpadding="0">
         <thead>

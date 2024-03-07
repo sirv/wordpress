@@ -8,13 +8,15 @@
     margin-top: 5px;
   }
 
-  .sirv-skeleton {
+  .sirv-smv-container {
     position: absolute;
     width: 100%;
     top: 0;
     padding: 0;
-    /* height: 300px; */
-    padding-top: 87%;
+    height: 100%;
+  }
+
+  .sirv-skeleton {
     background-repeat: no-repeat;
     background-image:
       linear-gradient(#c7c6c6cc 100%, transparent 0),
@@ -74,13 +76,13 @@
     text-align: center;
   }
 
-  .sirv-woo-opacity-zero{
+  .sirv-woo-opacity-zero {
     opacity: 0;
   }
 
-  .sirv-woo-opacity{
+  .sirv-woo-opacity {
     opacity: 1;
-    transition: all 1.5s;
+    transition: all 0.1s;
   }
 </style>
 
@@ -109,15 +111,18 @@ $custom_styles = !empty($custom_styles_data) ? 'style="' . sirv_sanitize_custom_
 
 $custom_classes_option = get_option("SIRV_WOO_CONTAINER_CLASSES");
 $custom_classes_attr = !empty($custom_classes_option) ? $custom_classes_option : '';
+
+$skeletonClass = $isSkeleton ? ' sirv-skeleton ' : '';
 ?>
 
-<div class="sirv-woo-wrapper <?php echo $custom_classes_attr; ?>" <?php echo $custom_styles; ?>>
-  <?php if ($isSkeleton) { ?>
-    <div class="sirv-skeleton-wrapper">
-      <div class="sirv-skeleton"></div>
+<div class="sirv-woo-wrapper<?php echo $custom_classes_attr; ?>" <?php echo $custom_styles; ?>>
+  <div class="sirv-skeleton-wrapper">
+    <div class="sirv-smv-container <?php echo $skeletonClass; ?>">
+      <?php echo $woo->get_woo_product_gallery_html(); ?>
     </div>
-  <?php } ?>
-  <?php echo $woo->get_woo_product_gallery_html(); ?>
+
+  </div>
+
   <div class="sirv-after-product-smv-wrapper">
     <?php do_action('sirv_after_product_smv'); ?>
   </div>

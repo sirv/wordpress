@@ -2,7 +2,7 @@ jQuery(function($){
 
     window['sirvIsChangedShortcode'] = false;
 
-    let itemsPerPage = 20;
+    let itemsPerPage = localStorage.getItem("shItemsPerPage") || 30;
 
     window['sirvGetShortcodesData'] = function(offset, itemsOnPage, doneFunc){
         $.post(ajaxurl, {
@@ -632,21 +632,43 @@ jQuery(function($){
     }
 
 
+    function setItemsOnPage(){
+        const itemsOnPage = parseInt($(this).attr("data-page-items"));
+        localStorage.setItem("shItemsPerPage", itemsOnPage);
+
+        sirvGetShortcodesData(1, itemsOnPage, renderShortcodesByType);
+
+        manageItemsOnPageButtonState(itemsOnPage);
+    }
+
+
+    function manageItemsOnPageButtonState(itemsPerPage){
+        $('.sirv-shp-results-per-page').each(function(){
+
+            if(parseInt($(this).attr("data-page-items")) == itemsPerPage) $(this).prop('disabled', true);
+            else $(this).prop("disabled", false);
+        });
+    }
+
+
         //-----------------------initialization-----------------------
     $(document).ready(function(){
             moveAjaxOverlay('.loading-ajax', '#wpcontent');
+            //manageItemsOnPageButtonState(itemsPerPage);
             //getShortcodesData(1);
             //sirvGetShortcodesData(1);
             window.sirvImgSelector = jQuery('.sirv-list-container').attr('data-image-selector');
             window.sirvShType = $('.sirv-list-container').attr('data-sh-type');
             window.sirvShSelector = $('.sirv-list-container').attr('data-sh-selector');
 
-            sirvGetShortcodesData(1, 20, renderShortcodesByType);
+            manageItemsOnPageButtonState(itemsPerPage);
+            sirvGetShortcodesData(1, itemsPerPage, renderShortcodesByType);
 
 
             $('.sirv-add-shortcode').on('click', addShortcode);
             $('.sirv-delete-selected').on('click', deleteShortcodes);
             $('.sirv-select-all').on('click', selectAllShortcodes);
+            $('.sirv-shp-results-per-page').on('click', setItemsOnPage);
         //}
 
     }); // dom ready end
