@@ -765,10 +765,9 @@ class Woo
   {
     $items = array();
     $is_show_all_items = get_option('SIRV_WOO_SHOW_VARIATIONS') !== '2' ? true : false;
-    $is_empty_main_image = true;
+    $is_empty_main_image = empty((array) $main_image);
 
     if ( (empty($sirv_images) && empty($wc_images)) || (empty($sirv_images) && $order == '3') ) {
-      $is_empty_main_image = empty((array) $main_image);
       if ( (!$is_show_all_items && $is_empty_main_image) || (empty($sirv_variations) && $is_empty_main_image) || $is_empty_main_image ) {
         $sirv_images[] = $this->get_wc_placeholder_as_item();
       }

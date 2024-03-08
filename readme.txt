@@ -239,6 +239,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 7.2.4 =
+* Fixed issue with missed "Sirv product image".
+
 = 7.2.3 =
 * Enabled permission for more roles to use Add Sirv Media. Roles now include: SuperAdmin, Admin, Editor, Author and Contributor.
 * Improved product gallery skeleton placeholder.
