@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.4
+ * Version:           7.2.5
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.4');
+define('SIRV_PLUGIN_VERSION', '7.2.5');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -601,6 +601,7 @@ register_activation_hook(__FILE__, 'sirv_activation_callback');
 
 function sirv_activation_callback($networkwide){
   sirv_register_settings();
+  sirv_fill_empty_options();
 
   if (function_exists('is_multisite') && is_multisite()) {
     if ($networkwide) {
@@ -1077,6 +1078,9 @@ function sirv_oversize_storage_notice(){
   $notice_id = 'sirv_oversize_storage';
 
   $storage_data = sirv_getStorageInfo();
+
+  if (!isset($storage_data['storage'])) return;
+
   $notice = '';
   $notice_type = 'warning';
   $dismiss_type = 'noticed';
@@ -1570,7 +1574,7 @@ function sirv_add_defer_to_js($tag, $handle){
 
 add_action('admin_init', 'sirv_admin_init');
 function sirv_admin_init(){
-  //sirv_register_settings();
+  sirv_register_settings();
 
   sirv_tinyMCE_plugin_shortcode_view_styles();
   sirv_redirect_to_options();
@@ -1656,8 +1660,6 @@ function sirv_register_settings(){
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_CHECK');
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_USER');
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_PASS');
-
-  sirv_fill_empty_options();
 
   require_once (SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/options/options.helper.class.php');
   OptionsHelper::prepareOptionsData();
@@ -2358,34 +2360,34 @@ function sirv_the_content($content, $type='content'){
 
       $is_video = in_array($ext, sirv_get_file_extensions_by_type("video"));
 
-      //TODO: find img data in sirv_images instead of get_post_meta. Maybe it will be quiqlier? but to mach work
-      //TODO: add indexes to the img_path and sirv_path to find needed img faster? Can be issue with insert new rows.
-      /* $sirv_images_table = $wpdb->prefix . 'sirv_images';
-      $attachment = $wpdb->get_row(
-        $wpdb->prepare(
-          "SELECT * FROM $sirv_images_table WHERE img_path = '%s' OR img_path = '%s'",
-          array('/'. $relative_filepath, '/'. $scaled_relative_path)
-        ),
-        ARRAY_A
-      ); */
+      //try to find attachment id in class. Like wp-image-345
+      $attachment_id = isset($img_attrs['class']) ? sirv_get_attachment_id_from_css_class($img_attrs['class']) : null;
 
-      $attachment = $wpdb->get_row(
-        $wpdb->prepare(
-         "SELECT * FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value = '%s' OR meta_value = '%s'",
-        array($relative_filepath, $scaled_relative_path))
-      , ARRAY_A);
+      if( $attachment_id === null ){
+        $attachment = $wpdb->get_row(
+          $wpdb->prepare(
+            "SELECT * FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value IN ('%s','%s')",
+            array($relative_filepath, $scaled_relative_path)
+          ),
+          ARRAY_A
+        );
 
-      if ( !empty($attachment) && !empty($attachment['post_id']) ) {
+        if( ! empty($attachment) && ! empty($attachment['post_id']) ){
+          $attachment_id = $attachment['post_id'];
+        }
+      }
+
+      if ( $attachment_id !== null ) {
         $file_url = '';
         $file_disc_path = wp_normalize_path($root_disc_images_path .'/'. $relative_filepath);
 
         if( $is_video ){
-          $file_url = sirv_cache_sync_data($attachment['post_id'], false);
+          $file_url = sirv_cache_sync_data($attachment_id, false);
         }else{
           //check if image without size non exists than we parsed original image without size in his name but with something that looks like WP size in name. In this case we should return original image instead of cropped with incorrect size.
           $has_size = !empty($size_str) || (isset($img_attrs['width']) || isset($img_attrs['height']));
           if ( !file_exists($file_disc_path) || !$has_size ) {
-            $resized = wp_get_attachment_image_src($attachment['post_id'], 'full');
+            $resized = wp_get_attachment_image_src($attachment_id, 'full');
             $file_url = $resized[0];
           } else {
             $w = 0;
@@ -2400,7 +2402,7 @@ function sirv_the_content($content, $type='content'){
               $img_attrs['height'] = $h;
             }
             try {
-                $resized = wp_get_attachment_image_src($attachment['post_id'], array($w, $h));
+                $resized = wp_get_attachment_image_src($attachment_id, array($w, $h));
                 $file_url = $resized[0];
             } catch (Exception $e) {
               if (IS_DEBUG) {
@@ -2422,6 +2424,17 @@ function sirv_the_content($content, $type='content'){
 
   //$logger->time_end("sirv_the_content");
   return $content;
+}
+
+
+function sirv_get_attachment_id_from_css_class($class_str){
+  preg_match('/wp-image-([0-9]+)/ims', $class_str, $m);
+
+  if( !empty($m) && !empty($m[1]) && is_numeric($m[1]) ){
+    return $m[1];
+  }
+
+  return false;
 }
 
 
@@ -4169,6 +4182,10 @@ function sirv_getStorageInfo($force_update = false){
 
   $sirvAPIClient = sirv_getAPIClient();
 
+  $sirvStatus =  $sirvAPIClient->preOperationCheck();
+
+  if ( ! $sirvStatus ) return array();
+
   $storageInfo = $sirvAPIClient->getStorageInfo();
 
   $lastUpdateTime = time();
@@ -4189,6 +4206,10 @@ function sirv_getStorageInfo($force_update = false){
 
 
 function sirv_filter_limits_info($limits, $excluded_limits){
+  if( ! isset($limits) || ! is_array($limits) ){
+    return array();
+  }
+
   if(! function_exists('limitsFilterFunc')){
     $limitsFilterFunc = function ($limit) use ($excluded_limits) {
       return !in_array($limit["type"], $excluded_limits);
@@ -5033,9 +5054,16 @@ function sirv_dismiss_notice(){
     wp_die();
   }
 
+  $allowed_notice_ids = array('sirv_oversize_storage', 'sirv_deprecated_v2', 'sirv_empty_logins', 'sirv_review_notice');
+
   $notice_id = $_POST['notice_id'];
   $dismiss_type = $_POST['dismiss_type'];
   $custom_time = intval($_POST['custom_time']);
+
+  if( !in_array($notice_id, $allowed_notice_ids) ){
+    echo json_encode(array('error' => "Action not allowed"));
+    wp_die();
+  }
 
   if (in_array($dismiss_type, array('current_day', 'day', 'custom'))){
     if ($dismiss_type == 'current_day') {
