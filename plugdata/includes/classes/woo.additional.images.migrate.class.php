@@ -2,7 +2,6 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 class WooAdditionalImagesMigrate{
-  protected static $table_name = 'wp_postmeta';
   protected static $db_wai_metakey = '_wc_additional_variation_images';
   protected static $db_sirv_gallery_metakey = "_sirv_woo_gallery_data";
   protected static $db_marked_metakey = '_sirv_parsed_wai_images';
@@ -35,7 +34,7 @@ class WooAdditionalImagesMigrate{
 
   protected static function get_wai_unsynced_data($limit = 10){
     global $wpdb;
-    $table_postmeta = self::$table_name;
+    $table_postmeta = $wpdb->postmeta;
     $marked_variation = self::$db_marked_metakey;
     $db_wai_metakey = self::$db_wai_metakey;
 
@@ -52,7 +51,7 @@ class WooAdditionalImagesMigrate{
   protected static function get_wai_unsynced_count(){
     global $wpdb;
 
-    $table_postmeta = self::$table_name;
+    $table_postmeta = $wpdb->postmeta;
     $marked_variation = self::$db_marked_metakey;
     $db_wai_metakey = self::$db_wai_metakey;
 
@@ -69,7 +68,7 @@ class WooAdditionalImagesMigrate{
   protected static function get_wai_count(){
     global $wpdb;
 
-    $table_postmeta = self::$table_name;
+    $table_postmeta = $wpdb->postmeta;
     $db_wai_metakey = self::$db_wai_metakey;
 
     $query = "SELECT count(*)
@@ -161,7 +160,7 @@ class WooAdditionalImagesMigrate{
       'meta_value' => implode(",", $attachment_ids),
     );
 
-    $wpdb->replace(self::$table_name, $data, array('%d', '%s', '%s'));
+    $wpdb->replace($wpdb->postmeta, $data, array('%d', '%s', '%s'));
   }
 
 

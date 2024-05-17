@@ -3,7 +3,7 @@
 <style>
   .sirv-skeleton-wrapper {
     position: relative;
-    padding-top: 87%;
+    padding-top: 100%;
     height: auto;
     margin-top: 5px;
   }

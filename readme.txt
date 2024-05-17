@@ -4,7 +4,7 @@ Donate link: https://sirv.com/
 Tags: compress, optimize, image, resize, CDN
 Requires PHP: 5.6
 Requires at least: 3.0.1
-Tested up to: 6.5
+Tested up to: 6.5.3
 Stable tag: 4.7.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -238,6 +238,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 7.2.6 =
+* Fixed issue with unable to close plugin notice.
+* Fixed an issue with the sirv gallery not working when the Sirv Media button is hidden.
+* Fixed issue with static DB prefix.
 
 = 7.2.5 =
 * Plugin tested with the latest WordPress version 6.5.

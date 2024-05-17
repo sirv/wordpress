@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.5
+ * Version:           7.2.6
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.5');
+define('SIRV_PLUGIN_VERSION', '7.2.6');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -1117,23 +1117,6 @@ function sirv_congrat_notice(){
 }
 
 
-function sirv_depreceted_v2_notice(){
-  $use_version = '3';
-
-  if( $use_version === '3' ) return;
-
-  $notice_id = 'sirv_deprecated_v2';
-  $notice_status = get_option($notice_id);
-
-  if( !$notice_status || $notice_status != 'dismiss'){
-    $notice = '<p><b>Sirv update coming</b> - in August 2021, the new sirv.js version will replace the original sirv.js version. We recommend you switch to the new version soon - it\'s fast, elegant and gives you more options for making beautiful galleries.</p>
-      <p>Simply go to your <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH  . 'options.php">Sirv settings page</a> and set "Sirv JS version" to "Sirv JS v3". Then check that your website galleries look great. <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/feedback.php">Contact us</a> if you need any help. We hope you\'ll love it!</p>';
-
-    echo sirv_get_wp_notice($notice, $notice_id, 'warning', true);
-  }
-}
-
-
 function sirv_empty_logins_notice(){
   $page = SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/account.php';
   $notice_id = 'sirv_empty_logins';
@@ -1245,7 +1228,7 @@ function sirv_review_notice(){
       <p>As a thank you, we\'ll give you 1GB extra free storage (regardless of the rating you choose).</p>
       <p>If you need help with the Sirv plugin, please <a href="admin.php?page=' . SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'submenu_pages/feedback.php">contact our team</a> and we\'ll reply ASAP.</p>';
 
-      echo sirv_get_wp_notice($notice, $notice_id, 'info', true);
+      echo sirv_get_wp_notice($notice, $notice_id, 'info', true, 'noticed');
     }
   }
 }
