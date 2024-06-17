@@ -1988,10 +1988,9 @@ jQuery(function($){
                     return;
                 }
                 let data = new FormData();
-                data.append('action', 'sirv_upload_file_by_chanks');
+                data.append('action', 'sirv_upload_file_by_chunks');
                 data.append("_ajax_nonce", sirv_ajax_object.ajaxnonce);
-                data.append("partFileName", file.name);
-                data.append('partFilePath', fileItem.fullPath);
+                data.append("filename", file.name);
                 data.append('totalParts', totalSlices);
                 data.append('totalFiles', totalOverSizedFiles);
                 data.append('partNum', partNum);
@@ -2023,12 +2022,20 @@ jQuery(function($){
                                 toastr.error(`Ajax error: ${response}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
                             }
                         }else{
+                            const json_res = JSON.parse(response);
+
+                            if(!!json_res.error){
+                                $(".sirv-upload-ajax").hide();
+                                toastr.error(`Error: ${json_res.error}`, "", {preventDuplicates: true, timeOut: 4000, positionClass: "toast-top-center"});
+                                getContentFromSirv(window.sirvGetPath);
+                                return;
+                            }
+
                             if ( nextSlice < file.size ) {
                                 uploadImageByChunk(fileItem, nextSlice, reader, partNum + 1, totalOverSizedFiles, currentDir);
                             }
 
-                            let json_obj = JSON.parse(response);
-                            if(json_obj.hasOwnProperty('stop') && json_obj.stop == true){
+                            if(json_res.hasOwnProperty('stop') && json_res.stop == true){
                                 $('.sirv-upload-ajax').hide();
                                 getContentFromSirv(window.sirvGetPath);
                                 realRequestSize = 0;

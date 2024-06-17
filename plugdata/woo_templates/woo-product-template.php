@@ -6,6 +6,7 @@
     padding-top: 100%;
     height: auto;
     margin-top: 5px;
+    width: 100%;
   }
 
   .sirv-smv-container {

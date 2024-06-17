@@ -76,17 +76,10 @@ class SirvAPIClient
     {
         $preCheck = $this->preOperationCheck();
         if (!$preCheck) {
-            return false;
+            return array("upload_status" => 'failded', "error" => "Something went wrong during preoperation check");
         }
 
-        /* //fix dirname if uploaded throuth browser
-        $path_info = pathinfo(rawurldecode($sirv_path));
-        $path_info['dirname'] = $path_info['dirname'] == '.' ? '' : '/' . $path_info['dirname'];
-        //$encoded_sirv_path = $path_info['dirname'] . '/' . rawurlencode($path_info['basename']);
-        $encoded_sirv_path = rawurlencode($path_info['dirname'] . '/' . $path_info['basename']);
-        //$encoded_sirv_path = $this->clean_symbols($encoded_sirv_path); */
-
-        if( ! Utils::startsWith('/', $sirv_path)){
+        if( ! Utils::startsWith('/', $sirv_path) ){
             $sirv_path = '/' . $sirv_path;
         }
 
@@ -104,7 +97,6 @@ class SirvAPIClient
         );
 
         $res = $this->sendRequest(
-            //'v2/files/upload?filename=' . $encoded_sirv_path,
             'v2/files/upload?filename=' . $sirv_path,
             file_get_contents($fs_path),
             'POST',
@@ -114,12 +106,16 @@ class SirvAPIClient
 
         if ($res && $res->http_code == 200) {
             $this->connected = true;
+
             return array('upload_status' => 'uploaded');
         } else {
             $this->connected = false;
             $this->nullToken();
             $this->updateParentClassSettings();
-            return array('upload_status' => 'failed');
+
+            $error = isset($res->error) ? $res->error : "Unknown uploading error";
+
+            return array('upload_status' => 'failed', "error" => $error);
         }
     }
 

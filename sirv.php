@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.6
+ * Version:           7.2.7
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.6');
+define('SIRV_PLUGIN_VERSION', '7.2.7');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -150,6 +150,9 @@ function sirv_wc_init(){
     add_filter('woocommerce_cart_item_thumbnail', 'sirv_woocommerce_cart_item_thumbnail_filter', 10, 3);
     //email order
     add_filter('woocommerce_order_item_thumbnail', 'sirv_woocommerce_order_item_thumbnail', 10, 2);
+
+    //return correct sirv product images
+    add_filter('image_downsize', "sirv_image_downsize", 10000, 3);
 
     //ajax mini cart
     //add_filter('woocommerce_add_to_cart_fragments', 'sirv_woocommerce_add_to_cart_fragments');
@@ -1982,39 +1985,26 @@ function sirv_parse_non_standard_content($content){
 }
 
 
-//as filter wp_get_attachment_thumb_url doesn't work, need use filter image_downsize to get correct links with resized images from SIRV
 function sirv_image_downsize($downsize, $attachment_id, $size){
 
-  if (empty($downsize)) return false;
+  $url = wp_get_attachment_url($attachment_id);
 
-  $wp_sizes = sirv_get_image_sizes();
-  $img_sizes = array();
-  $image = wp_get_attachment_url($attachment_id);
+  if (sirv_is_sirv_item($url)) {
+    $post = get_post($attachment_id);
+    if (isset($post->post_author) && (int) $post->post_author === 5197000) {
+      $url_images_path = wp_get_upload_dir()['baseurl'] . '/';
+      $quoted_base_url = preg_replace('/https?\\\:/ims', '(?:https?\:)?', preg_quote($url_images_path, '/'));
+      $sirv_url = preg_replace('/' . $quoted_base_url . '/is', '', $url);
 
-  $isExclude = Exclude::excludeSirvContent($image, 'SIRV_EXCLUDE_FILES');
-  if($isExclude) return $downsize;
+      $size_arr = sirv_get_correct_item_size($size);
 
-  if (empty($image) || empty($size) || $size == 'full' || (is_array($size) && empty($size[0]) && empty($size[1]))) {
-    return false;
-  }
+      $downsize = array($sirv_url, $size_arr["width"], $size_arr["height"], false, true);
 
-  if (is_string($size) && !empty($size)) {
-    if (!empty($wp_sizes) && in_array($size, array_keys($wp_sizes))) {
-      $img_sizes['width'] = $wp_sizes[$size]['width'];
-      $img_sizes['height'] = $wp_sizes[$size]['height'];
-      $img_sizes['isCrop'] = (bool) $wp_sizes[$size]['crop'];
+      return $downsize;
     }
-  } elseif (is_array($size)) {
-    $img_sizes['width'] = $size[0];
-    $img_sizes['height'] = $size[1];
-    $img_sizes['isCrop'] = $size[0] === $size[1] ? true : false;
   }
 
-  if (empty($img_sizes)) return false;
-
-  $scaled_img = $image . sirv_get_scale_pattern($img_sizes['width'], $img_sizes['height'], $img_sizes['isCrop']);
-
-  return array($scaled_img, $img_sizes['width'], $img_sizes['height']);
+  return false;
 }
 
 
@@ -4219,11 +4209,11 @@ function sirv_decode_chunk($data){
 }
 
 
-function sirv_checkAndCreatekDir($dir){
+function sirv_check_and_create_dir($dir, $perms){
   if (!is_dir($dir)) {
     mkdir($dir);
   }
-  chmod($dir, 0777);
+  chmod($dir, $perms);
 }
 
 
@@ -4629,10 +4619,10 @@ function sirv_upload_files_callback(){
 }
 
 
-//upload big file by chanks
-add_action('wp_ajax_sirv_upload_file_by_chanks', 'sirv_upload_file_by_chanks_callback');
+//upload big file by chunks
+add_action('wp_ajax_sirv_upload_file_by_chunks', 'sirv_upload_file_by_chunks_callback');
 
-function sirv_upload_file_by_chanks_callback(){
+function sirv_upload_file_by_chunks_callback(){
   if (!(is_array($_POST) && isset($_POST['binPart']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
   }
@@ -4644,30 +4634,25 @@ function sirv_upload_file_by_chanks_callback(){
 
   $arr_content = array();
 
-  $uploads_dir = wp_get_upload_dir();
-  $wp_uploads_dir = $uploads_dir['basedir'];
-
-  $APIClient = sirv_getAPIClient();
-
-  $tmp_dir = $wp_uploads_dir . '/tmp_sirv_chunk_uploads/';
-  sirv_checkAndCreatekDir($tmp_dir);
-
   $current_dir = stripslashes($_POST['currentDir']);
   $current_dir = $current_dir == '/' ? '' : $current_dir;
 
-  $filename = $_POST['partFileName'];
-  $fileRelativePath = Utils::startsWith('/', $_POST['partFilePath']) ? substr($_POST['partFilePath'], 1) : $_POST['partFilePath'];
+  $filename = $_POST['filename'];
   $binPart = sirv_decode_chunk($_POST['binPart']);
   $partNum = $_POST['partNum'];
   $totalParts = $_POST['totalParts'];
   $totalOverSizedFiles =  intval($_POST['totalFiles']);
 
-  $filePath = $tmp_dir . $filename;
-  $sirv_path = urlencode($current_dir . $fileRelativePath);
 
-  file_put_contents($filePath, $binPart, FILE_APPEND);
-  chmod($filePath, 0777);
+  $tmp_filepath = sirv_get_tmp_filename($filename);
 
+  if( !$tmp_filepath ){
+    echo json_encode(array('error' => 'Can\'t create tmp file. Please check if php tmp path is correctly set.'));
+    wp_die();
+  }
+
+  $sirv_path = urlencode($current_dir . $filename);
+  file_put_contents($tmp_filepath, $binPart, FILE_APPEND);
 
   if ($partNum == 1) {
     session_id("image-uploading-status");
@@ -4685,12 +4670,28 @@ function sirv_upload_file_by_chanks_callback(){
   }
 
   if ($partNum == $totalParts) {
+    $disallowed_types = array('application', 'text');
+
+    $mime_type = Utils::get_mime_type($tmp_filepath);
+
+    if( in_array($mime_type, $disallowed_types) ){
+      unlink($tmp_filepath);
+      delete_option($filename);
+
+      echo json_encode(array('error' => 'File type is not allowed'));
+      wp_die();
+    }
 
     $APIClient = sirv_getAPIClient();
+    $result = $APIClient->uploadImage($tmp_filepath, $sirv_path);
 
-    $result = $APIClient->uploadImage($filePath, $sirv_path);
+    unlink($tmp_filepath);
+    delete_option($filename);
 
-    unlink($filePath);
+    if( isset($result["error"]) ){
+      echo json_encode(array('error' => $result["error"]));
+      wp_die();
+    }
 
     session_id("image-uploading-status");
     session_start();
@@ -4710,6 +4711,26 @@ function sirv_upload_file_by_chanks_callback(){
   }
 
   wp_die();
+}
+
+
+function sirv_get_tmp_filename($db_key){
+  $tmp_filepath = get_option($db_key);
+
+  if( $tmp_filepath ){
+    return $tmp_filepath;
+  }
+
+  $tmp_filepath = wp_tempnam();
+
+  if($tmp_filepath){
+    update_option($db_key, $tmp_filepath);
+  }
+
+  //TODO? if not tmp path then create own path and use it for processing
+
+  return $tmp_filepath;
+
 }
 
 

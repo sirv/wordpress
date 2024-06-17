@@ -335,7 +335,7 @@ class Woo
 
   public static function save_sirv_variation_data($variation_id, $loop)
   {
-    self::save_sirv_data($variation_id);
+    self::save_sirv_data($variation_id, 'variation');
   }
 
 
@@ -363,15 +363,16 @@ class Woo
   }
 
 
-  protected static function save_sirv_data($product_id)
+  protected static function save_sirv_data($product_id, $post_type = 'product')
   {
+    $product_id = $post_type == 'product' ? $_POST['post_ID'] : $product_id;
+
     if (!empty($_REQUEST['action']) && ($_REQUEST['action'] == 'editpost' || $_REQUEST['action'] == 'woocommerce_save_variations')) {
       $gallery_data = isset($_POST['sirv_woo_gallery_data_' . $product_id]) ? json_decode(stripcslashes($_POST['sirv_woo_gallery_data_' . $product_id]), true)  : array();
       $product_image = isset($_POST['sirv_woo_product_image_' . $product_id]) ? $_POST['sirv_woo_product_image_' . $product_id] : '';
       $previous_product_image = isset($_POST['sirv_woo_product_previous_image_' . $product_id]) ? $_POST['sirv_woo_product_previous_image_' . $product_id] : '';
       $previous_attachment_id = isset($_POST['sirv_woo_product_image_attachment_id_' . $product_id]) ? $_POST['sirv_woo_product_image_attachment_id_' . $product_id] : -1;
       self::set_post_sirv_data($product_id, '_sirv_woo_gallery_data', $gallery_data);
-
       self::save_sirv_product_image($product_image, $previous_product_image, $product_id, $previous_attachment_id);
     }
   }

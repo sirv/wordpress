@@ -34,7 +34,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 *
 * $logger->time_start($timer_name);
 * //some code
-* $logger->time_chank($timer_name, $chank_name = null);
+* $logger->time_chunk($timer_name, $chunk_name = null);
 * //some code
 * $logger->time_end($timer_name, $decimals = 6);
 *

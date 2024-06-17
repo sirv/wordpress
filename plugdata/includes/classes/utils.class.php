@@ -71,6 +71,35 @@ class Utils{
   }
 
 
+  public static function get_mime_data($filepath){
+    $mine_data = false;
+
+    if ( function_exists('mime_content_type') ){
+      $mime_str = mime_content_type($filepath);
+
+      if( $mime_str ){
+        $mime_arr = explode('/', $mime_str);
+        $mine_data = array(
+          'type' => $mime_arr[0],
+          'subtype' => $mime_arr[1],
+        );
+      }
+    }
+
+    return $mine_data;
+  }
+
+
+  public static function get_mime_type($filepath){
+    return self::get_mime_data($filepath)['type'];
+  }
+
+
+  public static function get_mime_subtype($filepath){
+    return self::get_mime_data($filepath)['subtype'];
+  }
+
+
   public static function get_head_request($url, $protocol_version = 1){
     self::$headers = array();
     $error = NULL;
