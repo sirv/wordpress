@@ -30,11 +30,16 @@ class resizeHelper{
 
   public static function deleteThumbs($attachment_id){
 
+    $files = array();
     $fullFilePath = get_attached_file($attachment_id);
     $fileMeta = wp_get_attachment_metadata($attachment_id);
     $pathToImg = pathinfo($fullFilePath, PATHINFO_DIRNAME);
     $preventedSizes = self::getPreventSizes();
-    $files = self::getImagesToDelete($fileMeta['sizes'], $preventedSizes, $pathToImg);
+
+    if(isset($fileMeta['sizes'])){
+      $files = self::getImagesToDelete($fileMeta['sizes'], $preventedSizes, $pathToImg);
+    }
+
     $count = 0;
     $filesize = 0;
 

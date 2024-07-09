@@ -177,6 +177,7 @@ jQuery(function ($) {
 
             let data = {};
             data['action'] = 'sirv_init_account';
+            data['_ajax_nonce'] = sirv_options_data.ajaxnonce,
             data['email'] = $('input[name=SIRV_EMAIL]').val().trim();
             data['pass'] = $('input[name=SIRV_PASSWORD]').val().trim();
             data['firstName'] = name[0] || '';
@@ -351,6 +352,7 @@ jQuery(function ($) {
             let data = {};
 
             data['action'] = 'sirv_get_users_list';
+            data['_ajax_nonce'] = sirv_options_data.ajaxnonce;
             data["email"] = $("input[name=SIRV_EMAIL]").val().trim();
             data["pass"] = $("input[name=SIRV_PASSWORD]").val().trim();
             data["otpToken"] = $("input[name=SIRV_OTP_TOKEN]").val().trim();
@@ -386,7 +388,7 @@ jQuery(function ($) {
                 $('.sirv-connect-account-wrapper').removeClass('sirv-loading');
 
                 if( !!res && !!res.error ){
-                    showMessage('.sirv-error', res.error, 'sirv-init-account');
+                    showMessage('.sirv-error', res.error, 'sirv-init-account', 'error');
                 }else if(!!res && !!res.allow_users){
                     showUsersList(res);
                 }
@@ -407,6 +409,7 @@ jQuery(function ($) {
             let data = {};
 
             data['action'] = 'sirv_setup_credentials';
+            data['_ajax_nonce'] = sirv_options_data.ajaxnonce;
             data['email'] = $('input[name=SIRV_EMAIL]').val();
             data['sirv_account'] = selectedValue;
 
@@ -531,6 +534,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_clear_cache',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     clean_cache_type: cacheType,
                 },
                 type: 'POST',
@@ -543,6 +547,10 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+
+                if(!!data.error){
+                    showMessage('.sirv-sync-messages', data.error, 'sirv-sync-message', 'error');
+                }
 
                 updateCacheInfo(data);
                 showMessage('.sirv-sync-messages', getMessage(cacheType), 'sirv-sync-message', 'ok');
@@ -691,14 +699,13 @@ jQuery(function ($) {
             //fields
             let name = $('#sirv-writer-name').val();
             let contactEmail = $('#sirv-writer-contact-email').val();
-            //let priority = $('#sirv-priority').val();
             let summary = $('#sirv-summary').val();
             let messageText = $('#sirv-text').val();
 
             //messages;
             let proccessingSendMessage = '<span class="sirv-traffic-loading-ico sirv-no-lmargin"></span> Sending message. This may take some time...';
             let messageSent = 'Your message has been sent.';
-            let ajaxError = 'Error during AJAX request. Please try to send the message again or use the <a target="_blank" href="https://sirv.com/contact/">Sirv contact form here</a> Error: <br/>';
+            let ajaxError = 'Error during AJAX request. Please try to send the message again or use the <a target="_blank" href="https://sirv.com/contact/">Sirv contact form here</a> <br><br>Error Message: ';
             let sendingError = 'Something went wrong. The most likely reason is that Sendmail is not installed/configured. Please try to send the message again or use the <a target="_blank" href="https://sirv.com/contact/">Sirv contact form here</a>';
             //form messages
             let emptyFields = '<span style="color: red;">Please fill form fields.</span>';
@@ -722,13 +729,18 @@ jQuery(function ($) {
                 return false;
             }
 
-            $.post(ajaxurl, {
-                action: 'sirv_send_message',
-                name: name,
-                emailFrom: contactEmail,
-                //priority: priority + ' (via WP)',
-                summary: summary,
-                text: 'Contact name: ' + name + '\n' + 'Contact Email: ' + contactEmail + '\n\n' + messageText + generatedViaWP,
+            $.ajax({
+                url: ajaxurl,
+                data: {
+                    action: 'sirv_send_message',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
+                    name: name,
+                    emailFrom: contactEmail,
+                    summary: summary,
+                    text: `Contact name: ${name}\nContact Email: ${contactEmail}\n\n${messageText} ${generatedViaWP}`,
+                },
+                type: 'POST',
+                dataType: "json",
                 beforeSend: function () {
                     $('.sirv-show-result').html(proccessingSendMessage);
                 }
@@ -736,10 +748,16 @@ jQuery(function ($) {
                 //debug
                 //console.log(data);
 
-                if (data == '1') {
-                    $('.sirv-show-result').html(messageSent);
+                $(".sirv-show-result").hide();
+
+                if(data.error){
+                    showMessage(".sirv-feedback-msg", data.error, '.feedback-msg');
+                }
+
+                if (data.result == '1') {
+                    showMessage(".sirv-feedback-msg", messageSent, '.feedback-msg', 'ok');
                 } else {
-                    $('.sirv-show-result').html(sendingError);
+                    showMessage(".sirv-feedback-msg", sendingError, '.feedback-msg');
                 }
 
                 //clear contact form fields
@@ -749,8 +767,9 @@ jQuery(function ($) {
                 $('#sirv-text').val('');
 
             }).fail(function (jqXHR, status, error) {
-                console.log("Error during ajax request: " + error);
-                $('.sirv-show-result').html(ajaxError + error);
+                $(".sirv-show-result").hide();
+                console.error("Error during ajax request: " + error);
+                showMessage(".sirv-feedback-msg", ajaxError + error, ".feedback-msg");
             });
 
         });
@@ -792,34 +811,13 @@ jQuery(function ($) {
         }
 
 
-        $('.tst').on('click', tst);
-        function tst() {
-            $.ajax({
-                url: ajaxurl,
-                data: {
-                    action: 'sirv_tst',
-                },
-                type: 'POST',
-                dataType: "json",
-                beforeSend: function () {
-
-                },
-            }).done(function (data) {
-                //debug
-                console.log(data);
-
-            }).fail(function (jqXHR, status, error) {
-                console.error("Error during ajax request: " + error);
-            });
-        }
-
-
         $(".sirv-sync-images").on("click", initializeMassSync);
         function initializeMassSync(){
             $.ajax({
                 url: ajaxurl,
                 data: {
                     action: 'sirv_initialize_process_sync_images',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     sirv_initialize_sync: true,
                 },
                 type: 'POST',
@@ -841,6 +839,10 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+                if(!!data && !!data.error){
+                    showMessage('.sirv-sync-messages', data.error, 'sirv-sync-message', 'error');
+                }
+
                 if (!!data && data.folders_calc_finished){
                     $('.sirv-queue').html('Processing (2/3): calculating images in queue...');
                     massSyncImages();
@@ -872,6 +874,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_process_sync_images',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     sirv_sync_uncached_images: true,
                 },
                 type: 'POST',
@@ -884,6 +887,10 @@ jQuery(function ($) {
                 //console.log(data);
 
                 if (!!data) {
+                    if(!!data.error){
+                        showMessage('.sirv-sync-messages', data.error, 'sirv-sync-message', 'error');
+                    }
+
                     $('.sirv-progress-data__complited--text').html(data.q_s);
                     $('.sirv-progress-data__complited--size').html(data.size_s);
                     $('.sirv-progress-data__queued--text').html(data.queued_s);
@@ -1030,6 +1037,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_get_error_data',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     error_id: errorId,
                     report_type: reportType,
                 },
@@ -1046,6 +1054,10 @@ jQuery(function ($) {
                 $ajaxAnimation.hide();
 
                 if (!!data) {
+                    if(!!data.error){
+                        showMessage('.sirv-sync-messages', data.error, 'sirv-get-failed-message', 'error');
+                    }
+
                     if(reportType == 'html'){
                         $link.text('Open HTML report');
                         $link.attr('href', data);
@@ -1091,6 +1103,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_get_errors_info',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1105,6 +1118,10 @@ jQuery(function ($) {
                 //console.log(data);
 
                 if (!!data) {
+                    if(!!data.error){
+                        showMessage('.sirv-sync-messages', data.error, 'sirv-get-failed-message', 'error');
+                    }
+
                     let documentFragment = $(document.createDocumentFragment());
                     for (let i in data) {
                         if(data[i]['count'] > 0){
@@ -1243,8 +1260,6 @@ jQuery(function ($) {
 
             if ($curButton.attr("data-type") === "regenerate"){
                 let sizesCount = $(".sirv-thumbs-sizes .sirv-crop-row__checkboxes").length;
-                console.log(sizesCount);
-                console.log(Object.keys(preventedSizesObj).length);
                 if(Object.keys(preventedSizesObj).length === sizesCount){
                     hideMessage("sirv-thumbs-message");
                     showMessage('.sirv-thumb-messages', 'No thumbnails available to regenerate. Choose which thumbs should be created.', 'sirv-thumbs-message', 'warning');
@@ -1290,6 +1305,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_save_prevented_sizes',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     sizes: preventedSizesStr,
                 },
                 type: 'POST',
@@ -1303,6 +1319,10 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+
+                if(!!data.error){
+                    showMessage('.sirv-thumb-messages', data.error, 'sirv-thumbs-message', 'error');
+                }
 
                 if(data.status == 'saved'){
                     storePreventedSizesOnLoad();
@@ -1327,7 +1347,8 @@ jQuery(function ($) {
             $.ajax({
                 url: ajaxurl,
                 data: {
-                    action: 'sirv_cancel_thumbs_process'
+                    action: 'sirv_cancel_thumbs_process',
+                    _ajax_nonce:sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1340,6 +1361,9 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+                if(data.error){
+                    showMessage('.sirv-thumb-messages', data.error, 'sirv-thumbs-message', 'error');
+                }
 
                 if(data.status == 'canceled'){
                     showMessage('.sirv-thumb-messages', 'Operation '+ data.type +' was canceled', 'sirv-thumbs-message', 'ok');
@@ -1377,6 +1401,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_thumbs_process',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     type: type,
                     pause: isPause,
                 },
@@ -1400,6 +1425,9 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+                if(data.error){
+                    showMessage('.sirv-thumb-messages', data.error, 'sirv-thumbs-message', 'error');
+                }
 
                 if(data.status == 'processing'){
                     $(".sirv-thumbs-progress-percents").text(data.percent_finished);
@@ -1483,6 +1511,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_empty_view_cache',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     type: type,
                 },
                 type: 'POST',
@@ -1496,6 +1525,10 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+
+                if(data.error){
+                    showMessage('.sirv-sync-messages', data.error, 'sirv-sync-message', 'error');
+                }
 
                 //showMessage('.sirv-sync-messages', getMessage(type), 'sirv-sync-message', 'ok');
                 $('.sirv-clear-view-cache').siblings('span.sirv-traffic-loading-ico').hide();
@@ -1538,6 +1571,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_empty_view_cache',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                     type: type,
                 },
                 type: 'POST',
@@ -1550,6 +1584,10 @@ jQuery(function ($) {
             }).done(function (data) {
                 //debug
                 //console.log(data);
+
+                if(data.error){
+                    showMessage('.sirv-sync-messages', data.error, 'sirv-sync-message', 'error');
+                }
 
                 //showMessage('.sirv-sync-messages', getMessage(type), 'sirv-sync-message', 'ok');
                 $('.sirv-clear-view-cache-table').siblings('span.sirv-traffic-loading-ico').hide();
@@ -1601,6 +1639,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     "action": 'sirv_css_images_prepare_process',
+                    "_ajax_nonce": sirv_options_data.ajaxnonce,
                     "custom_path": custom_path
                 },
                 type: 'POST',
@@ -1649,7 +1688,8 @@ jQuery(function ($) {
             $.ajax({
                 url: ajaxurl,
                 data: {
-                    "action": 'sirv_css_images_proccess',
+                    action: 'sirv_css_images_proccess',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1699,7 +1739,8 @@ jQuery(function ($) {
             $.ajax({
                 url: ajaxurl,
                 data: {
-                    "action": 'sirv_css_images_processing',
+                    action: 'sirv_css_images_processing',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1742,7 +1783,8 @@ jQuery(function ($) {
             $.ajax({
                 url: ajaxurl,
                 data: {
-                    "action": 'sirv_css_images_get_data',
+                    action: 'sirv_css_images_get_data',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1754,6 +1796,13 @@ jQuery(function ($) {
             }).done(function (response) {
                 //debug
                 //console.log(response);
+
+                if(response.error){
+                    $('.sync-css').siblings('span.sirv-traffic-loading-ico').hide();
+                    $('.sync-css').siblings('span.sirv-show-empty-view-result').text(response.error);
+                    $('.sync-css').siblings('span.sirv-show-empty-view-result').show();
+                    return;
+                }
 
                 $('.sync-css').siblings('span.sirv-traffic-loading-ico').hide();
 
@@ -1883,6 +1932,7 @@ jQuery(function ($) {
                 url: ajaxurl,
                 data: {
                     action: 'sirv_refresh_stats',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
                 },
                 type: 'POST',
                 dataType: "json",
@@ -1896,6 +1946,10 @@ jQuery(function ($) {
 
                 $('.sirv-stats-container').removeClass('sirv-loading');
                 if (!!data) {
+                    if(data.error){
+                        showMessage('.sirv-stats-messages', error, 'sirv-get-failed-message', error);
+                    }
+
                     window.abc = data.traffic.traffic;
                     $('.sirv-stat-last-update').html(data.lastUpdate);
                     renderStorage(data.storage);
@@ -2182,27 +2236,6 @@ jQuery(function ($) {
         }
 
 
-
-        $('.debug-button').on('click', function () {
-            let data = {}
-            data['action'] = 'sirv_debug';
-
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: data,
-                beforeSend: function () {
-                    console.log('-----------------------------------DEBUG START-----------------------------------')
-                }
-            }).done(function (response) {
-                console.log(response);
-                console.log('-----------------------------------DEBUG END-----------------------------------')
-            }).fail(function (jqXHR, status, error) {
-                console.log("Error during ajax request: " + error + ' ' + status);
-                console.log('-----------------------------------DEBUG END-----------------------------------')
-            });
-        });
-
         //$('.sirv-switch').on('change', function () {
         $('.sirv-switch-acc-login').on('click', switchAccLogin);
         function switchAccLogin(e){
@@ -2236,7 +2269,10 @@ jQuery(function ($) {
         function getImagesStorageSize(){
             $.ajax({
                 url: ajaxurl,
-                data: {action: 'sirv_images_storage_size'},
+                data: {
+                    action: 'sirv_images_storage_size',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
+                },
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function (){
@@ -2247,6 +2283,10 @@ jQuery(function ($) {
             }).done(function (res) {
                 //debug
                 //console.log(res);
+
+                if(res.error){
+                    console.error(res.error);
+                }
 
                 $('.v-time').text(res.microtime + ' ms ( '+ res.time + ' sec )');
                 $('.v-size').text(res.size);
@@ -2553,6 +2593,10 @@ jQuery(function ($) {
             }).done(function (res) {
                 //debug
                 //console.log(res);
+
+                if(res.error){
+                    console.error(res.error);
+                }
 
                 $(".sirv-compressed-js-spinner").hide();
 

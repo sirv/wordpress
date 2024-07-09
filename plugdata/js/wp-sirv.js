@@ -2172,6 +2172,7 @@ jQuery(function($){
         function getUploadingStatus(){
             let data = {
                         action: 'sirv_get_image_uploading_status',
+                        _ajax_nonce: sirv_ajax_object.ajaxnonce,
                         sirv_get_image_uploading_status: true
             }
             let ajaxData = {
@@ -2181,26 +2182,32 @@ jQuery(function($){
             }
             sendAjaxRequest(ajaxData, processingOverlay=false, showingArea=false, isdebug=false,
                 doneFn=function(response){
-                let json_obj = JSON.parse(response);
-                if(json_obj.processedImage!== null || json_obj.count !== null){
-                    $('.sirv-progress-bar').css('width', json_obj.percent + '%');
-                    $('.sirv-progress-text').html(json_obj.percent + '%' + ' ('+ json_obj.processedImage +' of '+ json_obj.count +')');
 
-                    if (json_obj.percent == 100) {
-                        window.clearInterval(uploadTimer);
+                    if(response.error){
+                        console.error(response.error);
+                        return;
                     }
-                }else{
-                    if(json_obj.isPartFileUploading){
-                        $('.sirv-progress-text').html('<span class="sirv-traffic-loading-ico sirv-no-lmargin"></span>processing upload big files by chunks...');
-                    }else{
-                        //$('.sirv-progress-text').html('processing...');
-                        if(FirstImageUploadDelay == 0){
+
+                    let json_obj = JSON.parse(response);
+                    if(json_obj.processedImage!== null || json_obj.count !== null){
+                        $('.sirv-progress-bar').css('width', json_obj.percent + '%');
+                        $('.sirv-progress-text').html(json_obj.percent + '%' + ' ('+ json_obj.processedImage +' of '+ json_obj.count +')');
+
+                        if (json_obj.percent == 100) {
                             window.clearInterval(uploadTimer);
-                            FirstImageUploadDelay = 50;
                         }
-                        FirstImageUploadDelay--;
+                    }else{
+                        if(json_obj.isPartFileUploading){
+                            $('.sirv-progress-text').html('<span class="sirv-traffic-loading-ico sirv-no-lmargin"></span>processing upload big files by chunks...');
+                        }else{
+                            //$('.sirv-progress-text').html('processing...');
+                            if(FirstImageUploadDelay == 0){
+                                window.clearInterval(uploadTimer);
+                                FirstImageUploadDelay = 50;
+                            }
+                            FirstImageUploadDelay--;
+                        }
                     }
-                }
             });
         }
 
@@ -3187,8 +3194,9 @@ jQuery(function($){
             row_id = row_id || -1;
             let id;
             let data = {
-                        action: action,
-                        shortcode_data: getShortcodeData()
+                action: action,
+                _ajax_nonce: sirv_ajax_object.ajaxnonce,
+                shortcode_data: getShortcodeData()
             };
 
             if (row_id != -1) {
@@ -3204,6 +3212,10 @@ jQuery(function($){
 
             //processingOverlay='.loading-ajax'
             sendAjaxRequest(ajaxData, processingOverlay = '.loading-ajax', showingArea=false, isdebug=false, doneFn=function(response){
+                if(response.error){
+                    console.error(response.error);
+                }
+
                 id = response;
             });
 

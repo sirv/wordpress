@@ -97,7 +97,7 @@
           ?>
           <p class="sirv-viewble-option"><span class="sirv--grey"><?php echo htmlspecialchars($sirvCDNurl); ?>/</span><?php echo htmlspecialchars($sirv_folder); ?>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="sirv-option-edit" href="#">Change</a></p>
           <p class="sirv-editable-option" style="display: none;">
-            <span class="sirv--grey"><?php echo htmlspecialchars($sirvCDNurl); ?>/</span><input class="regular-text" type="text" name="SIRV_FOLDER" value="<?php echo $sirv_folder; ?>">
+            <span class="sirv--grey"><?php echo htmlspecialchars($sirvCDNurl); ?>/</span><input class="regular-text" type="text" name="SIRV_FOLDER" value="<?php echo htmlspecialchars($sirv_folder); ?>">
           </p>
           <br>
           <div class="sirv-message warning-message sirv-hide sirv-warning-on-folder-change">

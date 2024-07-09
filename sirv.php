@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.7
+ * Version:           7.2.8
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.7');
+define('SIRV_PLUGIN_VERSION', '7.2.8');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -1362,7 +1362,12 @@ function sirv_button($editor_id = 'content'){
     'woo_set_product_image_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . '/templates/woo_set_product_image.html',
     'isNotEmptySirvOptions' => $isNotEmptySirvOptions
   ));
-  wp_enqueue_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+
+  wp_register_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+  wp_localize_script('sirv-shortcodes-page', 'sirv_shortcodes_page_data', array(
+    'ajaxnonce' => wp_create_nonce('sirv_shortcodes_page_ajax_validation_nonce'),
+  ));
+  wp_enqueue_script('sirv-shortcodes-page');
 
   echo '<a href="#" class="button sirv-modal-click" title="Sirv add/insert images"><span class="dashicons dashicons-format-gallery" style="padding-top: 2px;"></span> Add Sirv Media</a><div class="sirv-modal"><div class="modal-content"></div></div>';
 }
@@ -1454,7 +1459,12 @@ function sirv_admin_scripts(){
           'isNotEmptySirvOptions' => $isNotEmptySirvOptions
         )
       );
-      wp_enqueue_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+
+      wp_register_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+      wp_localize_script('sirv-shortcodes-page', 'sirv_shortcodes_page_data', array(
+        'ajaxnonce' => wp_create_nonce('sirv_shortcodes_page_ajax_validation_nonce'),
+      ));
+      wp_enqueue_script('sirv-shortcodes-page');
     }
   }
 
@@ -1469,21 +1479,24 @@ function sirv_admin_scripts(){
     wp_enqueue_script('sirv_modal', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-bpopup.min.js', array('jquery'), '1.0.0');
     wp_enqueue_script('sirv_ui-js', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-ui.js', array('jquery', 'jquery-ui-sortable', 'sirv_modal'), false);
 
-    wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable', 'sirv_ui-js'), false, true);
+    wp_register_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable', 'sirv_ui-js'), false, true);
     wp_localize_script('sirv_options', 'sirv_options_data', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
       'ajaxnonce' => wp_create_nonce('ajax_validation_nonce'),
     ));
+    wp_enqueue_script('sirv_options');
   }
 
   if ( isset($_GET['page']) && ( $_GET['page'] == $feedback_page || $_GET['page'] == $account_page) ) {
     wp_register_style('sirv_options_style', SIRV_PLUGIN_SUBDIR_URL_PATH . 'css/wp-options.css');
     wp_enqueue_style('sirv_options_style');
-    wp_enqueue_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable'), false, true);
+
+    wp_register_script('sirv_options', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-options.js', array('jquery', 'jquery-ui-sortable'), false, true);
     wp_localize_script('sirv_options', 'sirv_options_data', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
       'ajaxnonce' => wp_create_nonce('ajax_validation_nonce'),
     ));
+    wp_enqueue_script('sirv_options');
   }
 
   if (isset($_GET['page']) && $_GET['page'] == SIRV_PLUGIN_RELATIVE_SUBDIR_PATH . 'shortcodes-view.php') {
@@ -1498,7 +1511,7 @@ function sirv_admin_scripts(){
     wp_enqueue_script('sirv_logic', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv.js', array('jquery', 'jquery-ui-sortable', 'sirv_toast_js'), false);
     wp_localize_script('sirv_logic', 'sirv_ajax_object', array(
       'ajaxurl' => admin_url('admin-ajax.php'),
-        'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
+      'ajaxnonce' => wp_create_nonce('sirv_logic_ajax_validation_nonce'),
       'assets_path' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'assets')
     );
     wp_enqueue_script('sirv_logic-md5', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/vendor/wp-sirv-md5.min.js', array(), '1.0.0');
@@ -1512,6 +1525,9 @@ function sirv_admin_scripts(){
     ));
 
     wp_register_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+    wp_localize_script('sirv-shortcodes-page', 'sirv_shortcodes_page_data', array(
+      'ajaxnonce' => wp_create_nonce('sirv_shortcodes_page_ajax_validation_nonce'),
+    ));
     wp_enqueue_script('sirv-shortcodes-page');
     wp_localize_script('sirv-shortcodes-page', 'sirvShortcodeObject', array('isShortcodesPage' => true));
   }
@@ -3752,18 +3768,6 @@ function sirv_get_data_images_per_folder($overheadLimit=5000, $isForsed = false)
 }
 
 
-add_action('wp_ajax_sirv_tst', 'sirv_tst');
-function sirv_tst(){
-  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
-    return;
-  }
-
-  echo json_encode(array('done' => true));
-
-  wp_die();
-}
-
-
 //---------------------------------------------YOAST SEO fixes for og images-----------------------------------------------------------------------//
 
 add_filter('wpseo_opengraph_image', 'sirv_wpseo_opengraph_image', 10, 1);
@@ -4104,6 +4108,11 @@ function sirv_getErrorsInfo(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $errors = FetchError::get_errors_from_db();
   //$file_size_fetch_limit = empty((int) get_option('SIRV_FETCH_MAX_FILE_SIZE')) ?  '' : ' (' . Utils::getFormatedFileSize(get_option('SIRV_FETCH_MAX_FILE_SIZE')) . ')';
   //$file_size_fetch_limit = ' (' . Utils::getFormatedFileSize(32000000) . ')';
@@ -4242,28 +4251,15 @@ function sirv_get_php_ini_data_callback(){
 }
 
 
-//use ajax to clean 30 rows in table. For test purpose.
-add_action('wp_ajax_sirv_delete_thirty_rows', 'sirv_delete_thirty_rows_callback');
-function sirv_delete_thirty_rows_callback(){
-  if (!(is_array($_POST) && isset($_POST['sirv_delete_thirty_rows']) && defined('DOING_AJAX') && DOING_AJAX)) {
-    return;
-  }
-  global $wpdb;
-
-  $table_name = $wpdb->prefix . 'sirv_images';
-  $result = $wpdb->query("DELETE FROM $table_name WHERE id > 0 LIMIT 30");
-
-  echo $result;
-
-
-  wp_die();
-}
-
-
 add_action('wp_ajax_sirv_initialize_process_sync_images', 'sirv_initialize_process_sync_images');
 function sirv_initialize_process_sync_images(){
   if (!(is_array($_POST) && isset($_POST['sirv_initialize_sync']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $overheadLimit;
@@ -4280,6 +4276,11 @@ add_action('wp_ajax_sirv_process_sync_images', 'sirv_process_sync_images');
 function sirv_process_sync_images(){
   if (!(is_array($_POST) && isset($_POST['sirv_sync_uncached_images']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $isLocalHost;
@@ -4399,6 +4400,11 @@ function sirv_refresh_stats(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   echo json_encode(sirv_getStorageInfo(true));
   wp_die();
 }
@@ -4409,6 +4415,11 @@ add_action('wp_ajax_sirv_clear_cache', 'sirv_clear_cache_callback');
 function sirv_clear_cache_callback(){
   if (!(is_array($_POST) && isset($_POST['clean_cache_type']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $clean_cache_type = $_POST['clean_cache_type'];
@@ -4498,6 +4509,7 @@ function sirv_sort_content_data($data){
   $files = array();
 
   foreach ($data as $file) {
+    $file->filename = htmlspecialchars($file->filename);
     if ($file->isDirectory) {
       if ( !in_array($file->filename, $restricted_folders) ) $content['dirs'][] = $file;
     } else {
@@ -4763,6 +4775,11 @@ function sirv_get_image_uploading_status_callback(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   session_id('image-uploading-status');
   session_start();
   $session_data = isset($_SESSION['uploadingStatus']) ? $_SESSION['uploadingStatus'] : array();
@@ -4791,6 +4808,11 @@ function sirv_save_shortcode_in_db(){
 
   if (!(is_array($_POST) && isset($_POST['shortcode_data']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $base_prefix;
@@ -4825,6 +4847,13 @@ function sirv_get_row_by_id(){
     return;
   }
 
+  if(!current_user_can("edit_posts")){
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+
+
   global $base_prefix;
   global $wpdb;
 
@@ -4853,6 +4882,11 @@ function sirv_get_shortcodes_data(){
 
   if (!(is_array($_POST) && isset($_POST['shortcodes_page']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_shortcodes_page_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $limit = $_POST['itemsPerPage'] ? intval($_POST['itemsPerPage']) : 10;
@@ -4903,6 +4937,11 @@ function sirv_duplicate_shortcodes_data(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('sirv_shortcodes_page_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $sh_id = intval($_POST['shortcode_id']);
 
   global $base_prefix;
@@ -4936,6 +4975,11 @@ add_action('wp_ajax_sirv_delete_shortcodes', 'sirv_delete_shortcodes');
 function sirv_delete_shortcodes(){
   if (!(is_array($_POST) && isset($_POST['shortcode_ids']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_shortcodes_page_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $base_prefix;
@@ -4972,6 +5016,11 @@ function sirv_update_sc(){
 
   if (!(is_array($_POST) && isset($_POST['row_id']) && isset($_POST['shortcode_data']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('sirv_logic_ajax_validation_nonce', 'edit_posts')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $base_prefix;
@@ -5024,7 +5073,7 @@ function sirv_add_folder(){
 
 
 //use ajax to check customer login details
-add_action('wp_ajax_sirv_check_connection', 'sirv_check_connection', 10, 1);
+//add_action('wp_ajax_sirv_check_connection', 'sirv_check_connection', 10, 1);
 function sirv_check_connection(){
 
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
@@ -5053,7 +5102,7 @@ function sirv_dismiss_notice(){
     wp_die();
   }
 
-  if (!sirv_is_allow_ajax_connect('sirv_rewiew_ajax_validation_nonce', 'edit_options')) {
+  if (!sirv_is_allow_ajax_connect('sirv_rewiew_ajax_validation_nonce', 'manage_options')) {
     echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
     wp_die();
   }
@@ -5119,7 +5168,7 @@ function sirv_delete_files(){
 
 
 //use ajax to check if options is empty or not
-add_action('wp_ajax_sirv_check_empty_options', 'sirv_check_empty_options');
+//add_action('wp_ajax_sirv_check_empty_options', 'sirv_check_empty_options');
 function sirv_check_empty_options(){
   $account_name = getValue::getOption('SIRV_ACCOUNT_NAME');
   $cdn_url = getValue::getOption('SIRV_CDN_URL');
@@ -5191,6 +5240,11 @@ function sirv_send_message(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $summary = stripcslashes($_POST['summary']);
   $text = stripcslashes($_POST['text']);
   $name = $_POST['name'];
@@ -5207,7 +5261,9 @@ function sirv_send_message(){
     'From:' . $name . ' <' . $emailFrom . '>'
   );
 
-  echo wp_mail('support@sirv.com', $summary, $text, $headers);
+  $result = wp_mail('support@sirv.com', $summary, $text, $headers);
+
+  echo json_encode(array('result' => $result));
 
   wp_die();
 }
@@ -5218,6 +5274,11 @@ add_action('wp_ajax_sirv_init_account', 'sirv_init_account');
 function sirv_init_account(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $response = array();
@@ -5272,6 +5333,11 @@ add_action('wp_ajax_sirv_get_users_list', 'sirv_get_users_list');
 function sirv_get_users_list(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $response = array();
@@ -5361,6 +5427,12 @@ function sirv_setup_credentials(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+
   $email = trim(strtolower($_POST['email']));
   $alias = $_POST['sirv_account'];
 
@@ -5435,6 +5507,11 @@ add_action('wp_ajax_sirv_get_error_data', 'sirv_get_error_data');
 function sirv_get_error_data(){
   if (!(is_array($_POST) && isset($_POST['error_id']) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   global $wpdb;
@@ -5604,6 +5681,11 @@ function sirv_empty_view_cache(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $clean_type = $_POST['type'];
 
   global $wpdb;
@@ -5699,6 +5781,15 @@ function sirv_set_image_meta($filename, $attachment_id){
 
 add_action('wp_ajax_sirv_images_storage_size', 'sirv_images_storage_size');
 function sirv_images_storage_size(){
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $start_time = time();
   $start_microtime = microtime(true);
 
@@ -5754,7 +5845,15 @@ function sirv_get_active_theme_name(){
 
 add_action('wp_ajax_sirv_css_images_processing', 'sirv_css_images_processing');
 function sirv_css_images_processing(){
-  //echo sirv_get_css_backimgs_sync_data();
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   echo json_encode(sirv_get_session_data('sirv-css-sync-images', 'css_sync_data'));
 
   wp_die();
@@ -5763,6 +5862,15 @@ function sirv_css_images_processing(){
 
 add_action('wp_ajax_sirv_css_images_get_data', 'sirv_css_images_get_data');
 function sirv_css_images_get_data(){
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   echo json_encode(array('css_data' => get_option('SIRV_CSS_BACKGROUND_IMAGES')));
 
   wp_die();
@@ -5773,6 +5881,11 @@ add_action('wp_ajax_sirv_css_images_prepare_process', 'sirv_css_images_prepare_p
 function sirv_css_images_prepare_process(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $isCssPath = isset($_POST['custom_path']) && !empty($_POST['custom_path']);
@@ -5817,6 +5930,14 @@ function sirv_css_images_prepare_process(){
 
 add_action('wp_ajax_sirv_css_images_proccess', 'sirv_css_images_proccess');
 function sirv_css_images_proccess(){
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
 
   $css_sync_data = sirv_get_session_data('sirv-css-sync-images', 'css_sync_data');
   $css_sync_data['msg'] = 'Starting process...';
@@ -6161,8 +6282,8 @@ function sirv_is_frontend_ajax($action){
 }
 
 
-add_action('wp_ajax_sirv_update_smv_cache_data', 'sirv_update_smv_cache_data', 10);
-add_action('wp_ajax_nopriv_sirv_update_smv_cache_data', 'sirv_update_smv_cache_data', 10);
+//add_action('wp_ajax_sirv_update_smv_cache_data', 'sirv_update_smv_cache_data', 10);
+//add_action('wp_ajax_nopriv_sirv_update_smv_cache_data', 'sirv_update_smv_cache_data', 10);
 
 function sirv_update_smv_cache_data(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
@@ -6225,6 +6346,11 @@ function sirv_thumbs_process(){
 
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $isPause = $_POST['pause'] == 'true';
@@ -6301,6 +6427,11 @@ function sirv_cancel_thumbs_process(){
     return;
   }
 
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
   $response = array('error' => '', 'status' => '', 'type' => '');
 
   $thumbs_data = json_decode(get_option('SIRV_THUMBS_DATA'), true);
@@ -6331,6 +6462,11 @@ add_action('wp_ajax_sirv_save_prevented_sizes', 'sirv_save_prevented_sizes', 10)
 function sirv_save_prevented_sizes(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
   }
 
   $prevented_sizes = stripslashes($_POST['sizes']);

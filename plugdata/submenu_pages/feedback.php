@@ -3,6 +3,9 @@
     <p class="sirv-options-desc">We reply to all messages within 24 hours.</p>
     <div class="sirv-optiontable-holder">
       <table class="optiontable form-table">
+        <tr class="sirv-feedback-msg">
+
+        </tr>
         <tr>
           <td>
             <label class='required'><b>Your name:</b></label>

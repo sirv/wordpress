@@ -6,29 +6,37 @@ jQuery(function($){
 
     window['sirvGetShortcodesData'] = function(offset, itemsOnPage, doneFunc){
         $.post(ajaxurl, {
-        action: 'sirv_get_shortcodes_data',
-        shortcodes_page: parseInt(offset),
-        itemsPerPage: parseInt(itemsOnPage),
-        beforeSend: function(){
-            $('.loading-ajax').show();
-        },
-        }).done(function(data){
-            //debug
-            //console.log(data);
-            itemsPerPage = itemsOnPage;
+            action: 'sirv_get_shortcodes_data',
+            _ajax_nonce: sirv_shortcodes_page_data.ajaxnonce,
+            shortcodes_page: parseInt(offset),
+            itemsPerPage: parseInt(itemsOnPage),
+            beforeSend: function(){
+                $('.loading-ajax').show();
+            },
+            }).done(function(data){
+                //debug
+                //console.log(data);
 
-            data = JSON.parse(data);
-            doneFunc(data, offset);
-            if(window.isSirvGutenberg && window.isSirvGutenberg == true){
-                checkAndRestoreSelection();
-            }
+                data = JSON.parse(data);
 
-            $('.loading-ajax').hide();
+                if(data.error){
+                    console.log(data.error);
+                    return;
+                }
 
-        }).fail(function(qXHR, status, error){
-            console.log(status, error);
-            $('.loading-ajax').hide();
-        });
+                itemsPerPage = itemsOnPage;
+
+                doneFunc(data, offset);
+                if(window.isSirvGutenberg && window.isSirvGutenberg == true){
+                    checkAndRestoreSelection();
+                }
+
+                $('.loading-ajax').hide();
+
+            }).fail(function(qXHR, status, error){
+                console.log(status, error);
+                $('.loading-ajax').hide();
+            });
     }
 
 
@@ -262,14 +270,20 @@ jQuery(function($){
         let id = parseInt(event.currentTarget.getAttribute('data-shortcode-id'));
 
         $.post(ajaxurl, {
-        action: 'sirv_duplicate_shortcodes_data',
-        shortcode_id: id,
-        beforeSend: function(){
-            $('.loading-ajax').show();
-        }
+            action: 'sirv_duplicate_shortcodes_data',
+            _ajax_nonce: sirv_shortcodes_page_data.ajaxnonce,
+            shortcode_id: id,
+            beforeSend: function(){
+                $('.loading-ajax').show();
+            }
         }).done(function(response){
             //debug
             //console.log(response);
+
+            if(response.error){
+                console.error(response.error);
+                return;
+            }
 
             let curPage = parseInt($('.sirv-cur-page').attr('data-page'));
             sirvGetShortcodesData(curPage, itemsPerPage, renderShortcodesByType);
@@ -279,9 +293,6 @@ jQuery(function($){
             console.log(status, error);
             $('.loading-ajax').hide();
         });
-
-
-
     }
 
 
@@ -294,14 +305,20 @@ jQuery(function($){
         if (checkedIds.length == 0) return false;
 
         $.post(ajaxurl, {
-        action: 'sirv_delete_shortcodes',
-        shortcode_ids: JSON.stringify(checkedIds),
-        beforeSend: function(){
-            $('.loading-ajax').show();
-        }
+            action: 'sirv_delete_shortcodes',
+            _ajax_nonce: sirv_shortcodes_page_data.ajaxnonce,
+            shortcode_ids: JSON.stringify(checkedIds),
+            beforeSend: function(){
+                $('.loading-ajax').show();
+            }
         }).done(function(response){
             //debug
             //console.log(response);
+
+            if(response.error){
+                console.error(response.error);
+                return;
+            }
 
             let curPage = parseInt($('.sirv-cur-page').attr('data-page')) || 1;
             $('.sirv-shortcodes-data').empty();

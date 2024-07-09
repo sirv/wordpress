@@ -144,7 +144,11 @@ if ($sirvStatus) {
 
 <form action="options.php" method="post" id="sirv-save-options">
   <?php
-  wp_nonce_field('update-options');
+  //settings_fields('sirv-settings-group');
+  //do_settings_sections( 'sirv-settings-group' );
+  //wp_nonce_field('update-options');
+  wp_nonce_field('sirv-settings-group-options');
+  wp_nonce_field('options-options');
 
   $active_tab = (isset($_POST['active_tab'])) ? $_POST['active_tab'] : '#sirv-settings';
   ?>
@@ -201,6 +205,8 @@ if ($sirvStatus) {
   <?php } ?>
 
   <input type="hidden" name="active_tab" id="active_tab" value="#settings" />
+  <!-- <input type='hidden' name='option_page' value="sirv-settings-group" /> -->
+  <input type='hidden' name='option_page' value="options" />
   <input type="hidden" name="action" value="update" />
   <input type="hidden" name="page_options" value="<?php echo implode(', ', $options_names); ?>" />
 

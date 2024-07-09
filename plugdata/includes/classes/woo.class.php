@@ -365,7 +365,7 @@ class Woo
 
   protected static function save_sirv_data($product_id, $post_type = 'product')
   {
-    $product_id = $post_type == 'product' ? $_POST['post_ID'] : $product_id;
+    $product_id = ( isset($_POST['post_id']) &&  $post_type == 'product' )? $_POST['post_id'] : $product_id;
 
     if (!empty($_REQUEST['action']) && ($_REQUEST['action'] == 'editpost' || $_REQUEST['action'] == 'woocommerce_save_variations')) {
       $gallery_data = isset($_POST['sirv_woo_gallery_data_' . $product_id]) ? json_decode(stripcslashes($_POST['sirv_woo_gallery_data_' . $product_id]), true)  : array();

@@ -49,8 +49,14 @@ class SirvControl extends \Elementor\Base_Data_Control{
 			'featured_image_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'templates/featured_image.html',
 			'woo_media_add_url' => SIRV_PLUGIN_SUBDIR_URL_PATH . 'templates/woo_media_add.html',
 			'isNotEmptySirvOptions' => $isNotEmptySirvOptions,
-			'sirv_cdn_url' => get_option('SIRV_CDN_URL')));
-		wp_enqueue_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array( 'jquery'), false);
+			'sirv_cdn_url' => get_option('SIRV_CDN_URL'))
+		);
+
+		wp_register_script('sirv-shortcodes-page', SIRV_PLUGIN_SUBDIR_URL_PATH . 'js/wp-sirv-shortcodes-page.js', array('jquery'), false);
+		wp_localize_script('sirv-shortcodes-page', 'sirv_shortcodes_page_data', array(
+			'ajaxnonce' => wp_create_nonce('sirv_shortcodes_page_ajax_validation_nonce'),
+		));
+		wp_enqueue_script('sirv-shortcodes-page');
 
 		wp_enqueue_script( 'sirv_control_manager', plugins_url('/assets/js/sirvControlManager.js', __FILE__), array('jquery'), false, true);
 
