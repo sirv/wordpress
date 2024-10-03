@@ -303,20 +303,21 @@ class Sirv_Gallery_MV
 
         switch ($item['type']) {
             case 'image':
+
                 if($this->params['apply_zoom']){
-                    $html = '<div ' . $dataItemId . ' data-type="zoom" data-src="' . $item['url'] . '"' . $options['zoom'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
+                    $html = '<div ' . $dataItemId . ' data-type="zoom" data-src="' . $url . '"' . $options['zoom'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
                 }else{
-                    $html = '<img ' . $dataItemId . ' data-src="' . $item['url'] . '">' . PHP_EOL;
+                    $html = '<img ' . $dataItemId . ' data-src="' . $url . '">' . PHP_EOL;
                 }
                 break;
             case 'video':
-                $html = '<div ' . $dataItemId . ' data-src="' . $item['url'] . '"' . $options['video'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
+                $html = '<div ' . $dataItemId . ' data-src="' . $url . '"' . $options['video'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
                 break;
             case 'spin':
-                $html = '<div ' . $dataItemId . ' data-src="' . $item['url'] . '"' . $options['spin'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
+                $html = '<div ' . $dataItemId . ' data-src="' . $url . '"' . $options['spin'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
                 break;
             case 'model':
-                $html = '<div ' . $dataItemId . ' data-src="' . $item['url'] . '"' . $options['model'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
+                $html = '<div ' . $dataItemId . ' data-src="' . $url . '"' . $options['model'] . ' data-alt="' . $caption . '"></div>' . PHP_EOL;
                 break;
         }
 

@@ -53,12 +53,17 @@ jQuery(function($){
     }
 
 
+    function stripslashes(str) {
+        return str.replace(/\\(.)/gm, "$1");
+    }
+
+
     function generateShortcodeByType(data, type){
         let $template = '';
         let imageSrc = '';
 
         if(type == 'tableRow'){
-            imageSrc = data.images.length > 0 ? data['images'][0]['url'] : '';
+            imageSrc = data.images.length > 0 ? stripslashes(data['images'][0]['url']) : '';
             let itemType = data["images"][0]["type"];
             let curImgPlaceholder = getPlaceholder(itemType);
             let timestamp = data.timestamp != null ? data.timestamp : 'no data';
@@ -87,7 +92,7 @@ jQuery(function($){
             let imagesCount = data.images.length > 0 ? data.images.length <= 6 ? data.images.length : 6 : 0;
             let imagesTemplate = '';
             for(let i=0; i < imagesCount; i++){
-                imageSrc = data['images'][i]['url'];
+                imageSrc = stripslashes(data['images'][i]['url']);
                 let itemType = data['images'][i]['type'];
                 let curImgPlaceholder = getPlaceholder(itemType);
 

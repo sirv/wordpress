@@ -45,9 +45,9 @@ jQuery(function ($) {
     let $caption;
 
     if(!!galleryId){
-      $caption = $($('#'+ galleryId +' .smv-slide.smv-shown .smv-content div')[0]);
+      $caption = $($('#'+ galleryId +' .smv-slide.smv-shown .smv-content div,'+ '#'+ galleryId +' .smv-slide.smv-shown .smv-content img')[0]);
     }else{
-      $caption = $($('#sirv-woo-gallery_' + id + ' .smv-slide.smv-shown .smv-content div')[0]);
+      $caption = $($('#sirv-woo-gallery_' + id + ' .smv-slide.smv-shown .smv-content div, '+ '#sirv-woo-gallery_' + id + ' .smv-slide.smv-shown .smv-content img')[0]);
     }
 
     return $caption.attr('data-slide-caption') || '';
@@ -57,12 +57,6 @@ jQuery(function ($) {
   function updateCaption(id){
     $('.sirv-woo-smv-caption_' + id).html(getSlideCaption(id));
   }
-
-
-/*   function getExistingIds(){
-    const idsJsonStr = $("#sirv-woo-gallery_data_" + sirv_woo_product.mainID).attr('data-existings-ids');
-    return JSON.parse(idsJsonStr);
-  } */
 
 
   function getJSONData(key, type) {

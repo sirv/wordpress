@@ -3,6 +3,18 @@ jQuery( function($){
 
   $(document).ready( function(){
 
+    function escapeHtml(text) {
+      var map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+      };
+
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
 
     $(window).on("update_woo_sirv_product_image", updateWooSirvProductImage);
     function updateWooSirvProductImage(){
@@ -51,22 +63,8 @@ jQuery( function($){
 
     function getGalleryHtml(id, data) {
       let documentFragment = $(document.createDocumentFragment());
-      //let imgPattern = '?thumbnail=78&image';
-      /* let action_tpl = '<ul class="actions">\n' +
-        '<li><a href="#" class="delete sirv-delete-item tips" data-id="'+ id +'" data-tip="Delete image">Delete</a></li>\n' +
-        '</ul >\n'; */
 
       $.each(data.items, function (index, item) {
-        /* let caption = !!item.caption ? decodeURI(item.caption) : '';
-        let liItem = '<li class="sirv-woo-gallery-item" data-order="' + item.order + '" data-type="' + item.type + '"data-provider="'+ item.provider +'" data-url-orig="' + item.url + '" data-view-id="'+ id +'" data-caption="'+ caption +'">\n' +
-          '<div class="sirv-woo-gallery-item-img-wrap">\n' +
-            '<img class="sirv-woo-gallery-item-img" src="' + item.url + imgPattern + '">\n' +
-          '</div>\n' +
-          '<input type="text" class="sirv-woo-gallery-item-caption" placeholder="Caption" value="'+ caption +'">'+
-          action_tpl +
-          '</li>\n'; */
-
-
         documentFragment.append(getGalleryLiItemHTML(id, item));
       });
 
@@ -410,7 +408,7 @@ jQuery( function($){
 
     function variationChanged($el){
       $($el).closest('.woocommerce_variation').addClass('variation-needs-update');
-      $('button.cancel-variation-changes, button.save-variation-changes').removeAttr('disabled');
+      $('button.cancel-variation-changes, button.save-variation-changes').prop('disabled', false);
       $('#variable_product_options').trigger('woocommerce_variations_input_changed');
     }
 

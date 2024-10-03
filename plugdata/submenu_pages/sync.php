@@ -2,8 +2,8 @@
 $storageInfo = sirv_getStorageInfo();
 ?>
 
-<h2>Synchronization</h2>
-<p class="sirv-options-desc">Copy your WordPress media library to Sirv, for supreme optimization and fast CDN delivery.</p>
+<h2>Synchronize your WordPress Media Library</h2>
+<p class="sirv-options-desc">Serve your media from Sirv instead of your WordPress server. Benefit from automatic image scaling, next-gen image formats and Sirv's fast global CDN.</p>
 <div class="sirv-optiontable-holder">
   <table class="optiontable form-table">
     <?php if (get_option('SIRV_ENABLE_CDN') != 1) { ?>
@@ -19,6 +19,54 @@ $storageInfo = sirv_getStorageInfo();
       <th class="sirv-sync-messages no-padding" colspan="2">
         <?php if ($error) echo '<div id="sirv-sync-message" class="sirv-message error-message">' . $error . '</div>'; ?>
       </th>
+    </tr>
+    <tr>
+      <td>
+        <h2>WordPress media</h2>
+      </td>
+    </tr>
+    <tr>
+      <?php
+      $wp_media_library_size = json_decode(get_option("SIRV_WP_MEDIA_LIBRARY_SIZE"), true);
+      $approximately_symbol = $wp_media_library_size['calc_type'] == 'approximately' ? '~' : '';
+      $wp_media_library_size_txt = $wp_media_library_size['status'] == "initial" ? 'No data yet' : Utils::getFormatedFileSize($wp_media_library_size['size']);
+      $wp_media_library_size_button_txt = $wp_media_library_size['status'] == "initial" ? 'Check now' : 'Recalculate';
+      $wp_media_library_size_count = $wp_media_library_size['img_count'];
+      $wp_media_library_size_count_txt = !empty($wp_media_library_size_count) ? "($wp_media_library_size_count media items)" : "";
+      ?>
+      <td colspan="2">
+        <div class="sirv-calc-library-size-view">
+          <div class="sirv-calc-library-size-view-column sirv-calc-library-size-view-title">
+            <span>Storage used</span>
+            <span>Date checked</span>
+          </div>
+          <div class="sirv-calc-library-size-view-column sirv-calc-library-size-view-data">
+            <div class="sirv-calc-library-size-show-analizing"><span class="sirv-traffic-loading-ico"></span>Analizing...<span class="sirv-calc-library-size-analizing-progress">0%</span></div>
+            <div class="sirv-calc-media-size-data">
+              <span class="sirv-calc-media-size-approx_symbol"><?php echo $approximately_symbol; ?></span>
+              <span class="sirv-calc-library-size-show-size"><?php echo $wp_media_library_size_txt ?></span>
+              <span class="sirv-calc-library-size-show-count"><?php echo $wp_media_library_size_count_txt ?></span>
+              <span class="sirv-calc-library-size-show-date"><?php echo $wp_media_library_size['date'] ?></span>
+            </div>
+          </div>
+          <div class="sirv-calc-library-size-view-column sirv-calc-library-size-view-button">
+            <button type="button" class="sirv-calc-library-size-action button-primary"><?php echo $wp_media_library_size_button_txt; ?></button>
+          </div>
+        </div>
+      </td>
+      <!-- <td>
+        <div>
+          <div>
+            <span class="sirv-calc-library-size-show-size"><?php echo $wp_media_library_size['size'] ?></span>
+            <span class="sirv-calc-library-size-show-count"><?php echo $wp_media_library_size_count_txt ?></span>
+            <span class="sirv-calc-library-size-show-date"><?php echo $wp_media_library_size['date'] ?></span>
+            <button type="button" class="sirv-calc-library-size-action button-primary"><?php echo $wp_media_library_size_button_txt; ?></button>
+          </div>
+          <span class="sirv-option-responsive-text">
+            Estimage how much storage space you require on Sirv.
+          </span>
+        </div>
+      </td> -->
     </tr>
     <tr>
       <td colspan="2">

@@ -717,15 +717,15 @@ jQuery(function ($) {
             let formMessages = '';
 
             if (summary == '' || messageText == '' || name == '' || contactEmail == '') {
-                formMessages += emptyFields + '<br />';
+                formMessages += emptyFields + '\n';
             }
 
             if (contactEmail.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}$/i) == null && contactEmail != '') {
-                formMessages += incorrectEmail + '<br />';
+                formMessages += incorrectEmail + '\n';
             }
 
             if (formMessages != '') {
-                $('.sirv-show-result').html(formMessages);
+                $(".sirv-mail-errors-view").html(formMessages);
                 return false;
             }
 
@@ -742,6 +742,8 @@ jQuery(function ($) {
                 type: 'POST',
                 dataType: "json",
                 beforeSend: function () {
+                    $(".sirv-mail-errors-view").empty();
+                    $(".sirv-feedback-msg").empty();
                     $('.sirv-show-result').html(proccessingSendMessage);
                 }
             }).done(function (data) {
@@ -2265,45 +2267,13 @@ jQuery(function ($) {
         }
 
 
-        $('.storage-size-test').on('click', getImagesStorageSize);
-        function getImagesStorageSize(){
-            $.ajax({
-                url: ajaxurl,
-                data: {
-                    action: 'sirv_images_storage_size',
-                    _ajax_nonce: sirv_options_data.ajaxnonce,
-                },
-                type: 'POST',
-                dataType: "json",
-                beforeSend: function (){
-                    $('.v-time').text('calc...');
-                    $('.v-size').text('calc...');
-                    $('.v-count').text('calc...');
-                },
-            }).done(function (res) {
-                //debug
-                //console.log(res);
-
-                if(res.error){
-                    console.error(res.error);
-                }
-
-                $('.v-time').text(res.microtime + ' ms ( '+ res.time + ' sec )');
-                $('.v-size').text(res.size);
-                $('.v-count').text(res.count);
-
-
-            }).fail(function (jqXHR, status, error) {
-                console.log("Error during ajax request: " + error);
-            });
-        }
-
         $(document).on('options_tab_changed', onOptionsTabChanged);
         function onOptionsTabChanged(event){
             if(!!event.detail.hash && event.detail.hash == 'cache'){
                 addInputCssPathPadding();
             }
         }
+
 
         function addInputCssPathPadding(){
             let $constPath = $('.sirv-input-const-text');
@@ -2473,6 +2443,63 @@ jQuery(function ($) {
             }else{
                 $authCredBlock.fadeOut();
             }
+        }
+
+
+        $(".sirv-calc-library-size-action").on("click", getMediaStorageSizeNew);
+        function getMediaStorageSizeNew(){
+            $.ajax({
+                url: ajaxurl,
+                data: {
+                    action: 'sirv_wp_media_library_size_new',
+                    _ajax_nonce: sirv_options_data.ajaxnonce,
+                },
+                type: 'POST',
+                dataType: "json",
+                beforeSend: function (){
+                    hideMessage("sirv-sync-messages", true);
+                    $(".sirv-calc-library-size-action").prop("disabled", true);
+                    $(".sirv-calc-library-size-show-analizing").css({'display': 'flex',});
+                    $(".sirv-calc-media-size-data").hide();
+                },
+            }).done(function (res) {
+                //debug
+                //console.log(res);
+
+                if(res.error){
+                    showMessage(".sirv-sync-messages", res.error, 'calc_size', 'error');
+                    console.error(res.error);
+                }
+
+                if(res.status == "processing"){
+                    $(".sirv-calc-library-size-analizing-progress").text(`${res.progress}%`);
+                    getMediaStorageSizeNew();
+                }
+
+                if(res.status == "done"){
+                    const approximately_symbol = res.calc_type == 'approximately' ? '~' : '';
+                    $(".sirv-calc-library-size-action").prop("disabled", false);
+                    $(".sirv-calc-library-size-show-analizing").hide();
+                    $(".sirv-calc-library-size-analizing-progress").text("0%");
+                    $(".sirv-calc-media-size-data").show();
+                    $(".sirv-calc-media-size-approx_symbol").text(approximately_symbol);
+                    $(".sirv-calc-library-size-show-size").text(res.formatted_size);
+                    $(".sirv-calc-library-size-show-count").text(`(${res.img_count} media items)`);
+                    $(".sirv-calc-library-size-show-date").text(res.date);
+                }
+
+            }).fail(function (jqXHR, status, error) {
+                console.log("Error during ajax request: " + error);
+                showMessage(".sirv-sync-messages", error, 'calc_size', 'error');
+
+                $(".sirv-calc-library-size-action").prop("disabled", false);
+                $(".sirv-calc-library-size-show-analizing").hide();
+                $(".sirv-calc-library-size-analizing-progress").text("0%");
+                $(".sirv-calc-media-size-data").show();
+
+                $(".sirv-calc-library-size-show-size").text("");
+                $(".sirv-calc-library-size-show-date").text("");
+            });
         }
 
 

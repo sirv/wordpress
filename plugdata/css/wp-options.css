@@ -2069,3 +2069,49 @@ input[name=SIRV_EMAIL]:focus::placeholder {
     height: 33px;
 }
 
+.sirv-mail-errors-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.sirv-font-15 {
+    font-size: 15px;
+}
+
+.sirv-calc-library-size-view {
+    display: flex;
+}
+
+.sirv-calc-library-size-view-column{
+    display: flex;
+    flex-direction: column;
+    margin-right: 20px;
+    height: 40px;
+}
+
+.sirv-calc-library-size-view-column span {
+    line-height: 25px;
+}
+
+.sirv-calc-library-size-view-button{
+    justify-content: center;
+}
+
+.sirv-calc-library-size-show-date{
+    display: block;
+}
+
+
+.sirv-calc-library-size-show-size {
+    font-weight: bold;
+}
+
+.sirv-calc-library-size-action{
+    margin-left: 5px !important;
+}
+
+.sirv-calc-library-size-show-analizing {
+    display: none;
+    align-items: center;
+    height: 40px;
+}

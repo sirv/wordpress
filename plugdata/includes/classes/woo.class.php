@@ -50,6 +50,11 @@ class Woo
   }
 
 
+  public static function get_pdp_template(){
+    include SIRV_PLUGIN_SUBDIR_PATH . 'woo_templates/woo-product-template.php';
+  }
+
+
   protected function get_variation_status_text($variation_value)
   {
     $status = '';
@@ -207,7 +212,7 @@ class Woo
 
   protected static function render_sirv_product_image_html($product_id, $item_pattern)
   {
-    $saved_img_url = self::get_post_sirv_data($product_id, 'sirv_woo_product_image', false, false);
+    $saved_img_url = htmlentities(self::get_post_sirv_data($product_id, 'sirv_woo_product_image', false, false));
     $attachment_id = self::get_post_sirv_data($product_id, 'sirv_woo_product_image_attachment_id', false, false);
 
     $no_image_placeholder = plugin_dir_url(__FILE__) . "../../assets/no_thumb.png";
@@ -271,37 +276,40 @@ class Woo
     <div id="sirv-woo-gallery_<?php echo $id; ?>" class="sirv-woo-gallery-container <?php echo $variation_class ?>" data-id="<?php echo $id; ?>">
       <ul class="sirv-woo-images" id="sirv-woo-images_<?php echo $id; ?>" data-id="<?php echo $id; ?>">
         <?php
-        $data = (array) self::get_post_sirv_data($id, '_sirv_woo_gallery_data', true, true);
-        if ($data && $data['items'] && !empty($data['items'])) {
-          $items = $data['items'];
-          $count = count($items);
+          $data_json_str = self::get_post_sirv_data($id, '_sirv_woo_gallery_data', false);
+          $data = (array) json_decode($data_json_str, true);
+          if ($data && $data['items'] && !empty($data['items'])) {
+            $items = $data['items'];
+            $count = count($items);
 
-          foreach ($items as $item) {
-            $video_id = isset($item['videoID']) ? ' data-video-id="' . $item['videoID'] . '" ' : '';
-            $video_link = isset($item['videoLink']) ? ' data-video-link="' . $item['videoLink'] . '" ' : '';
-            $video_data  = $video_id . $video_link;
-            //$thumb_url = empty($video_id) ?  $item['url'] . $item_pattern : $item['url'];
-            $thumb_url = self::get_gallery_item_url($item['type'], $item['url'], $item_pattern);
-            $caption = isset($item['caption']) ? urldecode($item['caption']) : '';
+            foreach ($items as $item) {
+              $video_id = isset($item['videoID']) ? ' data-video-id="' . $item['videoID'] . '" ' : '';
+              $video_link = isset($item['videoLink']) ? ' data-video-link="' . $item['videoLink'] . '" ' : '';
+              $video_data  = $video_id . $video_link;
+              //$thumb_url = empty($video_id) ?  $item['url'] . $item_pattern : $item['url'];
+              $url = htmlentities($item['url']);
+              $thumb_url = self::get_gallery_item_url($item['type'], $url, $item_pattern);
+              $caption = isset($item['caption']) ? urldecode($item['caption']) : '';
 
-            $item_id = isset($item['itemId']) ? $item['itemId'] : -1;
-            $attachment_id = isset($item['attachmentId']) ? $item['attachmentId'] : -1;
+              $item_id = isset($item['itemId']) ? $item['itemId'] : -1;
+              $attachment_id = isset($item['attachmentId']) ? $item['attachmentId'] : -1;
 
-            $delete_type = $item['type'] == 'online-video' ? 'online video' : $item['type'];
+              $delete_type = $item['type'] == 'online-video' ? 'online video' : $item['type'];
 
-            echo '<li class="sirv-woo-gallery-item" data-order="' . $item['order'] . '" data-type="' . $item['type'] . '"data-provider="' . $item['provider'] . '" data-url-orig="' . $item['url'] . '"' . $video_data . ' data-view-id="' . $id . '" data-caption="' . $caption . '" data-item-id="' . $item_id . '" data-attachment-id="' . $attachment_id . '">
-                          <div class="sirv-woo-gallery-item-img-wrap">
-                            <img class="sirv-woo-gallery-item-img" src="' . $thumb_url . '">
-                          </div>
-                          <input type="text" class="sirv-woo-gallery-item-caption" placeholder="Caption" value="' . $caption . '"/>
-                          <ul class="actions">
-                            <li><a href="#" class="delete sirv-delete-item tips" data-id="' . $id . '" data-tip="' . esc_attr__('Delete ' . $delete_type, 'woocommerce') . '">' . __('Delete', 'woocommerce') . '</a></li>
-                          </ul>
-                        </li>';
+              echo '<li class="sirv-woo-gallery-item" data-order="' . $item['order'] . '" data-type="' . $item['type'] . '"data-provider="' . $item['provider'] . '" data-url-orig="' . $url . '"' . $video_data . ' data-view-id="' . $id . '" data-caption="' . $caption . '" data-item-id="' . $item_id . '" data-attachment-id="' . $attachment_id . '">
+                            <div class="sirv-woo-gallery-item-img-wrap">
+                              <img class="sirv-woo-gallery-item-img" src="' . $thumb_url . '">
+                            </div>
+                            <input type="text" class="sirv-woo-gallery-item-caption" placeholder="Caption" value="' . $caption . '"/>
+                            <ul class="actions">
+                              <li><a href="#" class="delete sirv-delete-item tips" data-id="' . $id . '" data-tip="' . esc_attr__('Delete ' . $delete_type, 'woocommerce') . '">' . __('Delete', 'woocommerce') . '</a></li>
+                            </ul>
+                          </li>';
+            }
+          } else {
+            $data = array('items' => array(), 'id' => $id);
+            $data_json_str = json_encode(array('items' => array(), 'id' => $id));
           }
-        } else {
-          $data = array('items' => array(), 'id' => $id);
-        }
         ?>
       </ul>
       <?php if ($type == "gallery") { ?>
@@ -310,7 +318,7 @@ class Woo
           <a class="button button-primary button-large sirv-woo-delete-all" data-id="<?php echo $id; ?>">Delete all items</a>
         </div>
       <?php } ?>
-      <input type="hidden" id="sirv_woo_gallery_data_<?php echo $id; ?>" name="sirv_woo_gallery_data_<?php echo $id; ?>" value="<?php echo esc_attr(json_encode($data)); ?>" />
+      <input type="hidden" id="sirv_woo_gallery_data_<?php echo $id; ?>" name="sirv_woo_gallery_data_<?php echo $id; ?>" value="<?php echo htmlentities($data_json_str); ?>" />
       <div class="sirv-woo-gallery-toolbar hide-if-no-js">
         <div class="sirv-woo-gallery-toolbar-main">
           <a class="button button-primary button-large sirv-woo-add-media" data-type="<?php echo $type; ?>" data-id="<?php echo $id; ?>">Add Sirv Media</a>
@@ -365,10 +373,11 @@ class Woo
 
   protected static function save_sirv_data($product_id, $post_type = 'product')
   {
-    $product_id = ( isset($_POST['post_id']) &&  $post_type == 'product' )? $_POST['post_id'] : $product_id;
+    $product_id = (isset($_POST['post_ID']) &&  $post_type == 'product') ? $_POST['post_ID'] : $product_id;
 
     if (!empty($_REQUEST['action']) && ($_REQUEST['action'] == 'editpost' || $_REQUEST['action'] == 'woocommerce_save_variations')) {
-      $gallery_data = isset($_POST['sirv_woo_gallery_data_' . $product_id]) ? json_decode(stripcslashes($_POST['sirv_woo_gallery_data_' . $product_id]), true)  : array();
+      //$gallery_data = isset($_POST['sirv_woo_gallery_data_' . $product_id]) ? json_decode(stripcslashes($_POST['sirv_woo_gallery_data_' . $product_id]), true)  : array();
+      $gallery_data = isset($_POST['sirv_woo_gallery_data_' . $product_id]) ? $_POST['sirv_woo_gallery_data_' . $product_id] : '';
       $product_image = isset($_POST['sirv_woo_product_image_' . $product_id]) ? $_POST['sirv_woo_product_image_' . $product_id] : '';
       $previous_product_image = isset($_POST['sirv_woo_product_previous_image_' . $product_id]) ? $_POST['sirv_woo_product_previous_image_' . $product_id] : '';
       $previous_attachment_id = isset($_POST['sirv_woo_product_image_attachment_id_' . $product_id]) ? $_POST['sirv_woo_product_image_attachment_id_' . $product_id] : -1;
@@ -431,6 +440,9 @@ class Woo
     }
 
     $main_product_image_data = $this->get_main_image($this->product_id);
+    if( isset($main_product_image_data->url) ){
+      $main_product_image_data->url = htmlentities($main_product_image_data->url);
+    }
 
     $all_images = $this->get_all_cat_images_data($main_product_image_data, $sirv_data, $wc_gallery, $sirv_variations, $order);
 
@@ -1434,7 +1446,7 @@ class Woo
 
     foreach ($items as $item) {
       $is_item_disabled = $this->is_disable_item_str($item, $is_all_items_disabled);
-      $src = $item->type == 'online-video' ? $item->videoLink : $item->url;
+      $src = $item->type == 'online-video' ? $item->videoLink : htmlentities($item->url);
       $zoom = self::get_zoom_class($item->type);
       $caption = isset($item->caption) ? urldecode($item->caption) : '';
       if ($caption) $isCaption = true;
@@ -1572,8 +1584,19 @@ class Woo
 
   protected static function set_post_sirv_data($product_id, $field_id, $data, $isJson = true)
   {
-    $data = $isJson ? json_encode($data) : $data;
-    update_post_meta($product_id, $field_id, $data);
+    $saved_data = '';
+
+    //$data_type = is_string($data) ? 'string' : 'array';
+    $is_str = is_string($data) ? true : false;
+
+    if( $is_str ){
+      if( !empty($data) ){
+        $saved_data = $data;
+      }
+    }
+    $saved_data = ($isJson && !$is_str) ? json_encode($data) : $data;
+
+    update_post_meta($product_id, $field_id, $saved_data);
   }
 
 

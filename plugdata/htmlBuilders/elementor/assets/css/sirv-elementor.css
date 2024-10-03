@@ -20,7 +20,9 @@
 
 .sirv-data-elementor .sirv-sc-view > img {
     width: 40px;
-    height: auto !important;
+    /* height: auto !important; */
+    height: 40px !important;
+    object-fit: cover;
 }
 
 .sirv-data-elementor {

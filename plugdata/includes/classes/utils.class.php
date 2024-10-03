@@ -100,6 +100,11 @@ class Utils{
   }
 
 
+  public static function get_file_extension($filepath){
+    return pathinfo($filepath, PATHINFO_EXTENSION);
+  }
+
+
   public static function get_head_request($url, $protocol_version = 1){
     self::$headers = array();
     $error = NULL;

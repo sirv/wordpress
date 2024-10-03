@@ -746,7 +746,7 @@ jQuery(function($){
                         ${titlePath}
                         data-item-id="${md5('//'+ data.imageUrl)}"
                         data-item-type="${data.type}"
-                        data-item-sirv-path="${encodeURIComponent(data.filename)}"
+                        data-item-sirv-path="${data.filename}"
                         data-dir="${dir}"
                         data-item-title="${escapeHtml(data.basename)}"
                         data-content-type="${data.contentType}">
@@ -994,9 +994,9 @@ jQuery(function($){
                 for(let i=0; i < dirs.length; i++){
                     temp_dir += "/" + dirs[i];
                     if(i+1 == dirs.length){
-                        $('<li><span>' + dirs[i] + '</span></li>').appendTo('.breadcrumb');
+                        $(`<li><span>${dirs[i]}</span></li>`).appendTo('.breadcrumb');
                     }else{
-                        $('<li><a href="#" class="sirv-breadcramb-link" data-item-sirv-path="' + encodeURIComponent(temp_dir) + '">' + dirs[i] + '</a></li>').appendTo('.breadcrumb');
+                        $(`<li><a href="#" class="sirv-breadcramb-link" data-item-sirv-path="${temp_dir}">${dirs[i]}</a></li>`).appendTo('.breadcrumb');
                     }
                 }
             }else{
@@ -1012,11 +1012,11 @@ jQuery(function($){
         }
 
 
-        function getCurrentDir(){
-            let currentDir = $('#filesToUpload').attr('data-current-folder');
-            let dir = currentDir == '/' ? currentDir : '/' + currentDir.substring(0, currentDir.length -1);
+        function getCurrentDir(hasLastSlash = false){
+            const currentDir = $('#filesToUpload').attr('data-current-folder');
+            const dir = currentDir == '/' ? currentDir : '/' + currentDir;
 
-            return dir;
+            return !hasLastSlash ? dir.substring(0, dir.length -1) : dir;
         }
 
 
@@ -1060,7 +1060,6 @@ jQuery(function($){
             if(!!!dir) isInDirSearch = false;
 
             hideSearchMenu();
-
 
             let ajaxData = {
                 url: sirv_ajax_object.ajaxurl,
@@ -1491,15 +1490,16 @@ jQuery(function($){
             e.stopPropagation();
 
             let $menu = $('.sirv-dropdown');
-            const filePath = $menu.attr('data-item-sirv-path');
-            const decodedFilePath = decodeURIComponent(filePath);
+            let filePath = $menu.attr('data-item-sirv-path');
+
+            //const decodedFilePath = decodeURIComponent(filePath);
 
 
             let type = $menu.attr('data-item-type');
 
-            let basePath = basepath(decodedFilePath);
+            let basePath = basepath(filePath);
             let ext = getExt(filePath);
-            let baseNameWithoutExt = basenameWithoutExt(decodedFilePath);
+            let baseNameWithoutExt = basenameWithoutExt(filePath);
             let searchPattern = new RegExp(baseNameWithoutExt +"\\s\\(copy(?:\\s\\d)*?\\)\\." + ext, 'i');
 
             let countCopies = searchFileCopies(type, searchPattern);
@@ -1507,6 +1507,8 @@ jQuery(function($){
             let copyNum = countCopies > 0 ? ' ' + (countCopies) : '';
             let copyPattern = ' (copy'+ copyNum +').';
             let copyPath = encodeURIComponent(basePath + baseNameWithoutExt + copyPattern + ext);
+
+            filePath = encodeURIComponent(filePath);
 
             duplicateFile(filePath, copyPath);
 
@@ -1776,11 +1778,6 @@ jQuery(function($){
         window.getContentFromSirv = function(path, isRender=true, unRenderFunc=false, continuation=''){
             path = ( !!path ) ? path : '/';
 
-            //clean searh field on update content
-            /* if($('#sirv-search-field').val() !== ''){
-                $('#sirv-search-field').val('');
-                $('#sirv-search-field').removeClass('sirv-search-wide').addClass('sirv-search-narrow');
-            } */
             cancelSearchLight();
 
             let ajaxData = {
@@ -1846,7 +1843,7 @@ jQuery(function($){
                     data: {
                         action:  'sirv_add_folder',
                         _ajax_nonce: sirv_ajax_object.ajaxnonce,
-                        current_dir:  $('#filesToUpload').attr('data-current-folder'),
+                        current_dir:  getCurrentDir(hasLastSlash = true),
                         new_dir:  newFolderName
                     },
                 }
@@ -1892,7 +1889,8 @@ jQuery(function($){
             let groupedImages = groupedFiles(files, maxFileSize, maxFilesCount, sirvFileSizeLimit);
             let countFiles = files.length;
 
-            let currentDir = htmlDecode($('#filesToUpload').attr('data-current-folder'));
+            //let currentDir = htmlDecode($('#filesToUpload').attr('data-current-folder'));
+            let currentDir = getCurrentDir(hasLastSlash = true);
 
             //clear progress bar data before start new upload
             $('.sirv-progress-bar').css('width', '0');
@@ -2417,13 +2415,12 @@ jQuery(function($){
 
 
         function selectImages(event, $obj) {
-
             function addMiniatures($obj) {
                 let data = {
                     id: $obj.attr('data-item-id'),
-                    url: $('.sirv-item-icon', $obj).attr('data-item-url'),
-                    dir: $obj.attr('data-dir'),
-                    itemSirvPath: $obj.attr('data-item-sirv-path'),
+                    url: escapeHtml($('.sirv-item-icon', $obj).attr('data-item-url')),
+                    dir: escapeHtml($obj.attr('data-dir')),
+                    itemSirvPath: escapeHtml($obj.attr('data-item-sirv-path')),
                     type: $obj.attr('data-item-type'),
                     width: $('.sirv-item-meta-container', $obj).attr('data-width') || 0,
                     height: $('.sirv-item-meta-container', $obj).attr('data-height') || 0,
@@ -2499,10 +2496,21 @@ jQuery(function($){
                     let galleryItems = $('.gallery-img');
 
                     $.each(galleryItems, function(index, value){
-                        $('.selected-miniatures-container').append('<li class="selected-miniature"><img class="selected-miniature-img" data-item-id="'+ $(this).attr('data-item-id') +
-                            '" data-item-url="'+ $(this).attr('data-item-url') +'" data-item-type="'+ $(this).attr('data-item-type') + '"'+
-                            '  data-caption="'+ escapeHtml($(this).parent().siblings('span').children().val()) +'"'+
-                            '  src="'+ getItemSrc($(this).attr('data-item-type'), $(this).attr('data-item-url') , 40) +'"' +' /></li>\n');
+                        const id = $(this).attr("data-item-id");
+                        const type = $(this).attr("data-item-type");
+                        const url = escapeHtml($(this).attr("data-item-url"));
+                        const caption = escapeHtml($(this).parent().siblings('span').children().val());
+                        const src = getItemSrc(type, url, 40);
+
+                        $('.selected-miniatures-container').append(
+                            `<li class="selected-miniature">
+                                <img class="selected-miniature-img" data-item-id="${id}"
+                                    data-item-url="${url}"
+                                    data-item-type="${type}"
+                                    data-caption="${caption}"
+                                    src="${src}"
+                                />
+                            </li>\n`);
                     });
                 }
             }
@@ -2954,13 +2962,17 @@ jQuery(function($){
             if ($('.selected-miniature-img').length > 0) {
                 let selectedImages = $('.selected-miniature-img');
                 $.each(selectedImages, function(index, img){
-                    let url = $(img).attr('data-item-url');
+                    let url = escapeHtml($(img).attr('data-item-url'));
+
                     let type = $(img).attr('data-item-type');
                     items.push({url: url, type: type, provider: 'sirv', order: index});
                 });
 
                 let $storage = $('#sirv_woo_gallery_data_'+ id);
+
                 let data = JSON.parse($storage.val());
+
+                data.items = fixJsonItems(data.items);
 
                 data.items = data.items.concat(items);
 
@@ -2970,6 +2982,12 @@ jQuery(function($){
             }
 
             bPopup.close();
+        }
+
+        function fixJsonItems(items){
+            items.forEach((element) => element.url = escapeHtml(element.url));
+
+            return items;
         }
 
 
@@ -2988,19 +3006,32 @@ jQuery(function($){
 
                 $.each(selectedImages, function(index, value){
                     const type = $(value).attr("data-item-type");
-                    const url = $(value).attr("data-item-url");
+                    const url = escapeHtml($(value).attr("data-item-url"));
+                    const src = getItemSrc(type, url, 150);
+                    const id = $(value).attr("data-item-id");
+                    const title = basename(url);
+                    const width = $(value).attr("data-width");
+                    const height = $(value).attr("data-height");
+                    const caption = escapeHtml($(value).attr("data-caption"));
 
-                    let elemBlock = $('<li class="gallery-item"><div><div><a class="delete-image delete-image-icon" href="#" title="Remove"></a>'+
-                        '<img class="gallery-img" src="' + getItemSrc(type, url, 150) +'"'+
-                            ' data-item-id="'+ $(value).attr('data-item-id') +'"'+
-                            'data-item-order="'+ index +'"'+
-                            'data-item-url="'+ $(value).attr('data-item-url') +
-                            '" data-item-type="'+ $(value).attr('data-item-type') +'" alt=""'+
-                            ' title="' + basename($(value).attr('data-item-url')) + '"' +
-                            'data-width="'+ $(value).attr('data-width') +'" '+
-                            'data-height="'+ $(value).attr('data-height') +'">'+
-                            '</div><span><input type="text" placeholder="Text caption.."'+
-                            ' data-setting="caption" class="image-caption" value="'+ escapeHtml($(value).attr('data-caption')) +'" /></span></div></li>\n');
+                    let elemBlock = $(`
+                        <li class="gallery-item"><div><div><a class="delete-image delete-image-icon" href="#" title="Remove"></a>
+                            <img class="gallery-img" src="${src}"
+                                data-item-id="${id}"
+                                data-item-order=${index}
+                                data-item-url="${url}"
+                                data-item-type="${type}"
+                                alt="${title}"
+                                title="${title}"
+                                data-width="${width}"
+                                data-height="${height}"
+                            />
+                            </div>
+                                <span><input type="text" placeholder="Text caption.."
+                                    data-setting="caption" class="image-caption" value="${caption}" />
+                                </span>
+                            </div>
+                        </li>\n`);
                     documentFragment.append(elemBlock);
                 });
 

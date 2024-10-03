@@ -89,13 +89,14 @@
 
 <?php
 
-function sirv_sanitize_custom_styles($data)
-{
-  $string = $data;
-  $string = str_replace('\r', "", $string);
-  $string = str_replace('\n', "", $string);
+if (!function_exists("sirv_sanitize_custom_styles")) {
+  function sirv_sanitize_custom_styles($data){
+    $string = $data;
+    $string = str_replace('\r', "", $string);
+    $string = str_replace('\n', "", $string);
 
-  return $string;
+    return $string;
+  }
 }
 
 require_once(dirname(__FILE__) . '/../includes/classes/woo.class.php');

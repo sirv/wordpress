@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           7.2.8
+ * Version:           7.3.0
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '7.2.8');
+define('SIRV_PLUGIN_VERSION', '7.3.0');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -165,6 +165,17 @@ function sirv_wc_init(){
 
       return $args;
     } */
+
+    /*--------------------------------------Support for avada woo product block---------------------------------------------- */
+    $theme = wp_get_theme();
+
+    if ($theme->template == 'Avada') {
+      remove_action('woocommerce_before_single_product_summary', 'woocommerce_show_product_images', 20);
+      remove_action('woocommerce_product_thumbnails', 'woocommerce_show_product_thumbnails', 20);
+
+      add_action('woocommerce_before_single_product_summary', array('Woo', 'get_pdp_template'), 20);
+    }
+    /*---------------------------------------END Support for avada woo product block------------------------------------------- */
 
 
     add_filter('posts_where', 'sirv_query_attachments');
@@ -892,6 +903,16 @@ function sirv_fill_empty_options(){
   if (!get_option('SIRV_HTTP_AUTH_CHECK')) update_option('SIRV_HTTP_AUTH_CHECK', '0');
   if (!get_option('SIRV_HTTP_AUTH_USER')) update_option('SIRV_HTTP_AUTH_USER', '');
   if (!get_option('SIRV_HTTP_AUTH_PASS')) update_option('SIRV_HTTP_AUTH_PASS', '');
+
+  if (!get_option('SIRV_WP_MEDIA_LIBRARY_SIZE')) update_option('SIRV_WP_MEDIA_LIBRARY_SIZE', json_encode(array(
+    'date' => "No checked yet",
+    'size' => "No data yet",
+    'img_count' => 0,
+    'all_images_count' => 0,
+    'status' => "initial",// initial, done, processing, stopped
+    'offset' => 0,
+    'calc_type' => 'direct',
+  )) ,'no');
 }
 
 
@@ -1402,7 +1423,7 @@ function sirv_create_menu(){
   add_submenu_page($settings_item, 'Sirv Shortcodes', 'Shortcodes', 'manage_options', $shortcodes_view_item);
   add_submenu_page($settings_item, 'Sirv Media Library', 'Media Library', 'manage_options', $library_item);
   add_submenu_page($settings_item, 'Sirv Help', 'Help', 'manage_options', $help_item);
-  add_submenu_page($settings_item, 'Sirv Feedback', 'Feedback', 'manage_options', $feedback_item);
+  add_submenu_page($settings_item, 'Sirv Feedback', 'Contact', 'manage_options', $feedback_item);
 }
 
 
@@ -1662,6 +1683,8 @@ function sirv_register_settings(){
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_CHECK');
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_USER');
   register_setting('sirv-settings-group', 'SIRV_HTTP_AUTH_PASS');
+
+  register_setting('sirv-settings-group', 'SIRV_WP_MEDIA_LIBRARY_SIZE');
 
   require_once (SIRV_PLUGIN_SUBDIR_PATH . 'includes/classes/options/options.helper.class.php');
   OptionsHelper::prepareOptionsData();
@@ -2008,12 +2031,8 @@ function sirv_image_downsize($downsize, $attachment_id, $size){
   if (sirv_is_sirv_item($url)) {
     $post = get_post($attachment_id);
     if (isset($post->post_author) && (int) $post->post_author === 5197000) {
-      $url_images_path = wp_get_upload_dir()['baseurl'] . '/';
-      $quoted_base_url = preg_replace('/https?\\\:/ims', '(?:https?\:)?', preg_quote($url_images_path, '/'));
-      $sirv_url = preg_replace('/' . $quoted_base_url . '/is', '', $url);
-
       $size_arr = sirv_get_correct_item_size($size);
-
+      $sirv_url = sirv_get_parametrized_url($url, $size, false);
       $downsize = array($sirv_url, $size_arr["width"], $size_arr["height"], false, true);
 
       return $downsize;
@@ -2368,6 +2387,7 @@ function sirv_the_content($content, $type='content'){
 
       if ( $attachment_id !== null ) {
         $file_url = '';
+
         $file_disc_path = wp_normalize_path($root_disc_images_path .'/'. $relative_filepath);
 
         if( $is_video ){
@@ -2377,7 +2397,7 @@ function sirv_the_content($content, $type='content'){
           $has_size = !empty($size_str) || (isset($img_attrs['width']) || isset($img_attrs['height']));
           if ( !file_exists($file_disc_path) || !$has_size ) {
             $resized = wp_get_attachment_image_src($attachment_id, 'full');
-            $file_url = $resized[0];
+            $file_url = is_array($resized) ? $resized[0] : '';
           } else {
             $w = 0;
             $h = 0;
@@ -2392,7 +2412,9 @@ function sirv_the_content($content, $type='content'){
             }
             try {
                 $resized = wp_get_attachment_image_src($attachment_id, array($w, $h));
-                $file_url = $resized[0];
+                if( $resized ){
+                  $file_url = $resized[0];
+                }
             } catch (Exception $e) {
               if (IS_DEBUG) {
                 global $logger;
@@ -2547,7 +2569,7 @@ function sirv_wp_get_attachment_image_src($image, $attachment_id, $size, $icon){
     $post = get_post($attachment_id);
     if ( isset($post->post_author) && (int) $post->post_author === 5197000 ) {
       $isCrop = isset($image[3]) ? (bool) $image[3] : false;
-      $image[0] = sirv_get_parametrized_url($image[0], $size, $isCrop, $attachment_id);
+      $image[0] = sirv_get_parametrized_url($image[0], $size, $isCrop);
 
       return $image;
     }
@@ -2587,6 +2609,7 @@ function sirv_get_parametrized_url($sirv_url, $size = null, $isCrop=false){
   $url_images_path = $uploads_dir_info['baseurl'] . '/';
   //$sirv_url = preg_replace('/(^[^\s]*?)\-([0-9]{1,}(?:x|&#215;)[0-9]{1,})(\.[a-z]{3,4})/i', "$1$3", $sirv_url);
   $sirv_image = str_replace($url_images_path, '', $sirv_url);
+  $sirv_image = htmlentities($sirv_image);
 
   $sirv_image = sirv_clean_get_params($sirv_image);
   $sirv_item_type_data = SirvProdImageHelper::get_sirv_item_type($sirv_image);
@@ -4473,13 +4496,13 @@ function sirv_get_content(){
   $sirv_path = empty($_POST['path']) ? '/' : $_POST['path'];
   $continuation = '';
 
-  $sirv_path = stripcslashes($sirv_path);
+  $sirv_path = rawurlencode(htmlspecialchars_decode(stripslashes($sirv_path)));
 
   $sirvAPIClient = sirv_getAPIClient();
 
   $content = array(
     'sirv_url' => get_option('SIRV_CDN_URL'),
-    'current_dir' => rawurldecode($sirv_path),
+    'current_dir' => htmlspecialchars(rawurldecode($sirv_path)),
     'content' => array('images' => array(), 'dirs' => array(), 'spins' => array(), 'files' => array(), 'videos' => array(), 'audio' => array(), 'models' => array()),
     'continuation' => ''
   );
@@ -4590,10 +4613,12 @@ function sirv_upload_files_callback(){
     wp_die();
   }
 
+  $is_upload_file = true;
+
 
   $imagePaths =  json_decode(stripslashes($_POST['imagePaths']), true);
 
-  $current_dir = stripslashes($_POST['current_dir']);
+  $current_dir = htmlspecialchars_decode(stripslashes($_POST['current_dir']));
   $current_dir = $current_dir == '/' ? '' : $current_dir;
   $total = intval($_POST['totalFiles']);
   $totalPart = count($_FILES);
@@ -4608,7 +4633,19 @@ function sirv_upload_files_callback(){
     $sirv_path = urlencode($current_dir . $file_path);
     $file = $_FILES[$i]["tmp_name"];
 
-    $result = $APIClient->uploadImage($file, $sirv_path);
+
+    //sanitize svg files before upload
+    if(Utils::get_mime_subtype($file) == 'svg+xml'){
+      $is_upload_file = sirv_sanitize_svg($file);
+    }
+
+
+    if($is_upload_file){
+      $result = $APIClient->uploadImage($file, $sirv_path);
+    }else{
+      $result = false;
+      $is_upload_file = true;
+    }
 
     session_id('image-uploading-status');
     session_start();
@@ -4631,6 +4668,26 @@ function sirv_upload_files_callback(){
 }
 
 
+function sirv_sanitize_svg($filepath){
+  spl_autoload_register();
+
+  $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+
+  $svg_data = file_get_contents($filepath);
+
+  $sanitized_svg = $sanitizer->sanitize($svg_data);
+
+  if($sanitized_svg){
+    file_put_contents($filepath, $sanitized_svg);
+
+    return true;
+  }
+
+  return false;
+
+}
+
+
 //upload big file by chunks
 add_action('wp_ajax_sirv_upload_file_by_chunks', 'sirv_upload_file_by_chunks_callback');
 
@@ -4644,9 +4701,11 @@ function sirv_upload_file_by_chunks_callback(){
     wp_die();
   }
 
+  $is_upload_file = true;
+
   $arr_content = array();
 
-  $current_dir = stripslashes($_POST['currentDir']);
+  $current_dir = htmlspecialchars_decode(stripslashes($_POST['currentDir']));
   $current_dir = $current_dir == '/' ? '' : $current_dir;
 
   $filename = $_POST['filename'];
@@ -4654,7 +4713,6 @@ function sirv_upload_file_by_chunks_callback(){
   $partNum = $_POST['partNum'];
   $totalParts = $_POST['totalParts'];
   $totalOverSizedFiles =  intval($_POST['totalFiles']);
-
 
   $tmp_filepath = sirv_get_tmp_filename($filename);
 
@@ -4694,11 +4752,24 @@ function sirv_upload_file_by_chunks_callback(){
       wp_die();
     }
 
-    $APIClient = sirv_getAPIClient();
-    $result = $APIClient->uploadImage($tmp_filepath, $sirv_path);
+    //sanitize svg file before upload
+    if (Utils::get_mime_subtype($tmp_filepath) == 'svg+xml') {
+      $is_upload_file = sirv_sanitize_svg($tmp_filepath);
+    }
 
-    unlink($tmp_filepath);
-    delete_option($filename);
+
+
+    if($is_upload_file){
+      $APIClient = sirv_getAPIClient();
+      $result = $APIClient->uploadImage($tmp_filepath, $sirv_path);
+
+      unlink($tmp_filepath);
+      delete_option($filename);
+    }else{
+      $filename = basename(urldecode($sirv_path));
+      $result['error'] = "SVG file $filename cannot be sanitized. Upload is forbidden";
+    }
+
 
     if( isset($result["error"]) ){
       echo json_encode(array('error' => $result["error"]));
@@ -5060,8 +5131,7 @@ function sirv_add_folder(){
     wp_die();
   }
 
-
-  $path = $_POST['current_dir'] . $_POST['new_dir'];
+  $path = htmlspecialchars_decode($_POST['current_dir'] . $_POST['new_dir']);
 
   $APIClient = sirv_getAPIClient();
   $res = $APIClient->createFolder($path);
@@ -5245,6 +5315,7 @@ function sirv_send_message(){
     wp_die();
   }
 
+  $to = 'support@sirv.com';
   $summary = stripcslashes($_POST['summary']);
   $text = stripcslashes($_POST['text']);
   $name = $_POST['name'];
@@ -5261,11 +5332,22 @@ function sirv_send_message(){
     'From:' . $name . ' <' . $emailFrom . '>'
   );
 
-  $result = wp_mail('support@sirv.com', $summary, $text, $headers);
+  $result = wp_mail($to, $summary, $text, $headers);
 
   echo json_encode(array('result' => $result));
 
   wp_die();
+}
+
+
+add_action('wp_mail_failed', 'sirv_log_sendmail_errors', 10, 1);
+function sirv_log_sendmail_errors($wp_error)
+{
+  global $logger;
+
+  $error_message = $wp_error->get_error_message();
+
+  $logger->error($error_message, 'Error message')->filename('mail.log')->write();
 }
 
 
@@ -5600,7 +5682,6 @@ function sirv_get_search_data(){
   $c_query = new QueryString($_POST['search_query']);
   $from = $_POST['from'];
   $dir = isset($_POST['dir']) ? $_POST['dir'] : '';
-
   $sirvAPIClient = sirv_getAPIClient();
 
   if(!empty($dir)){
@@ -5637,7 +5718,7 @@ function sirv_copy_file(){
     wp_die();
   }
 
-  $file_path = stripslashes($_POST['filePath']);
+  $file_path = htmlspecialchars_decode(stripslashes($_POST['filePath']));
   $copy_path = stripslashes($_POST['copyPath']);
 
   $sirvAPIClient = sirv_getAPIClient();
@@ -5779,8 +5860,9 @@ function sirv_set_image_meta($filename, $attachment_id){
   return $res_title && $res_description;
 }
 
-add_action('wp_ajax_sirv_images_storage_size', 'sirv_images_storage_size');
-function sirv_images_storage_size(){
+
+add_action('wp_ajax_sirv_wp_media_library_size', 'sirv_wp_media_library_size');
+function sirv_wp_media_library_size(){
   if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
     return;
   }
@@ -5790,26 +5872,36 @@ function sirv_images_storage_size(){
     wp_die();
   }
 
-  $start_time = time();
-  $start_microtime = microtime(true);
+  /* $start_time = time();
+  $start_microtime = microtime(true); */
 
   $upload_dir     = wp_upload_dir();
   $upload_space   = sirv_foldersize( $upload_dir['basedir'] );
   $post_images_count = sirv_get_all_post_images_count();
 
-  $ops_time = time() - $start_time;
+  /* $ops_time = time() - $start_time;
   $ops_microtime = microtime(true) - $start_microtime;
 
-    echo json_encode(
-      array(
+  $media_storage_data =  array(
         'time' => $ops_time,
+        'date' => date('\o\n F d, Y'),
         'microtime_start' => $start_microtime,
         'microtime_end' => microtime(true),
         'microtime' => round($ops_microtime * 1000),
         'size' => Utils::getFormatedFileSize($upload_space),
         'count' => $post_images_count
-      )
-    );
+  ); */
+  $media_storage_data =  array(
+        'date' => date('\o\n F d, Y'),
+        'size' => Utils::getFormatedFileSize($upload_space),
+        'img_count' => $post_images_count
+  );
+
+  $media_storage_data_json = json_encode($media_storage_data);
+
+  update_option('SIRV_WP_MEDIA_LIBRARY_SIZE', $media_storage_data_json);
+
+  echo $media_storage_data_json;
 
   wp_die();
 }
@@ -5817,6 +5909,7 @@ function sirv_images_storage_size(){
 
 function sirv_foldersize($path){
   $total_size = 0;
+  $total_files = 0;
   $files = scandir($path);
   $cleanPath = rtrim($path, '/') . '/';
 
@@ -5829,11 +5922,151 @@ function sirv_foldersize($path){
       } else {
         $size = filesize($currentFile);
         $total_size += $size;
+        $total_files++;
       }
     }
   }
 
   return $total_size;
+}
+
+
+add_action('wp_ajax_sirv_wp_media_library_size_new', 'sirv_wp_media_library_size_new');
+function sirv_wp_media_library_size_new(){
+  if (!(is_array($_POST) && defined('DOING_AJAX') && DOING_AJAX)) {
+    echo json_encode(array('error' => 'Action is prohibited'));
+    wp_die();
+  }
+
+  if (!sirv_is_allow_ajax_connect('ajax_validation_nonce', 'manage_options')) {
+    echo json_encode(array('error' => 'Access to the requested resource is forbidden'));
+    wp_die();
+  }
+
+  global $wpdb;
+
+  define('CALC_LIMIT', 50000);
+  define('DB_QUERY_LIMIT', 500);
+
+  $stored_data = json_decode(get_option('SIRV_WP_MEDIA_LIBRARY_SIZE'), true);
+
+  if( in_array($stored_data['status'], array('initial', 'done', 'stopped')) ){
+    $stored_data['all_images_count'] = sirv_get_all_post_images_count();
+    $stored_data['date'] = date('F d, Y');
+  }
+
+  if($stored_data['status'] !== 'processing'){
+    if($stored_data['status'] !== 'stopped'){
+      $stored_data['offset'] = 0;
+      $stored_data['size'] = 0;
+      $stored_data['img_count'] = 0;
+    }
+
+    $stored_data["status"] = "processing";
+  }
+
+  $portion_metadata = sirv_get_part_of_wp_media_size($wpdb, $stored_data['offset'], DB_QUERY_LIMIT);
+
+  $stored_data['status'] = $portion_metadata['status'];
+  $stored_data['size'] += $portion_metadata['size'];
+  $stored_data['img_count'] += $portion_metadata['img_count'];
+  $stored_data['offset'] = $portion_metadata['offset'];
+
+  if($stored_data['all_images_count'] == $stored_data['img_count']){
+    $stored_data['status'] = 'done';
+  }
+
+  if($stored_data['img_count'] >= CALC_LIMIT){
+    $approximately_size = sirv_calc_wp_media_size_approximately($stored_data['size'], $stored_data['img_count'], $stored_data['all_images_count']);
+    $stored_data['status'] = 'done';
+    $stored_data['calc_type'] = 'approximately';
+    $stored_data['size'] = $approximately_size;
+    $stored_data['img_count'] = $stored_data['all_images_count'];
+  }
+
+  update_option('SIRV_WP_MEDIA_LIBRARY_SIZE', json_encode($stored_data));
+
+  $progress = $stored_data['img_count'] >= CALC_LIMIT ? 100 : round(($stored_data['offset'] / $stored_data['all_images_count']) * 100);
+
+  $progress = $progress > 100 ? 100 : $progress;
+
+  echo json_encode(array(
+    "status" => $stored_data['status'],
+    "img_count" => $stored_data['img_count'],
+    "size" => $stored_data['size'],
+    "formatted_size" => Utils::getFormatedFileSize($stored_data['size']),
+    "offset" => $stored_data['offset'],
+    "progress" => $progress,
+    "date" => $stored_data['date'],
+    "all_images_count" => $stored_data['all_images_count'],
+    "calc_type" => $stored_data['calc_type'],
+  ));
+
+  wp_die();
+}
+
+
+function sirv_calc_wp_media_size_approximately($size, $img_count, $all_img_count){
+  $averrage_size = $size;
+
+  if( (int) $size > 0 && (int) $img_count > 0 ){
+    $item_averrage_size = (int) $size / $img_count;
+    $averrage_size = $item_averrage_size * $all_img_count;
+  }
+
+  return $averrage_size;
+}
+
+
+function sirv_db_get_wp_attachment_metadata($wpdb, $offset=0, $limit=5){
+  $query = $wpdb->prepare("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_wp_attachment_metadata' ORDER BY post_id ASC LIMIT %d OFFSET %d", $limit, $offset );
+
+  return $wpdb->get_col($query);
+}
+
+
+function sirv_get_part_of_wp_media_size($wpdb, $offset=0, $limit=5){
+  $db_result = sirv_db_get_wp_attachment_metadata($wpdb, $offset, $limit);
+
+  $size = 0;
+  $img_count = 0;
+  $status = "processing";
+
+  $base_images_dir = wp_upload_dir()['basedir'] . '/';
+
+  if( !empty($db_result) ){
+    foreach ($db_result as $serialized_file_data) {
+      $file_data = maybe_unserialize($serialized_file_data);
+      if( isset($file_data['filesize']) ){
+        $size += (int) $file_data['filesize'];
+        $img_count ++;
+      }else{
+        //try to get size from file if exists
+        if(isset($file_data['file']) && file_exists($base_images_dir . $file_data['file'])){
+          $file_size = @filesize($base_images_dir . $file_data['file']);
+
+          if($file_size){
+            $size += $file_size;
+            $img_count ++;
+          }
+        }
+      }
+    }
+  }else{
+    $status = 'done';
+  }
+
+  return array(
+    "size" => $size,
+    "img_count" => $img_count,
+    "offset" => $offset + $limit,
+    "status" => $status,
+  );
+}
+
+
+function sirv_get_progress_of_size_calc(){
+
 }
 
 

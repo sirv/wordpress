@@ -46,7 +46,7 @@ class Report{
 
     protected static function _renderTHead($fields){
         $tmp_str = '<thead><tr>'. PHP_EOL;
-        $end_str = '</tr></head>'. PHP_EOL;
+        $end_str = '</tr></thead>'. PHP_EOL;
 
         foreach ($fields as $field) {
             $tmp_str .= "<th>{$field}</th>" . PHP_EOL;
@@ -57,7 +57,7 @@ class Report{
 
     protected static function _renderTBody($data){
         $tmp_str = '<tbody>' . PHP_EOL;
-        $end_str = '</tbody>' . PHP_EOL;
+        $end_str = '</tr></tbody>' . PHP_EOL;
         $count = 1;
         foreach ($data as $row) {
             $tmp_str .= '<tr>' . PHP_EOL;

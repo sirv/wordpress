@@ -5,6 +5,11 @@ tinymce.PluginManager.add('sirvgallery', function( editor ) {
     let placeholder_grey_params = '?q=1&w=10&colorize.color=efefef';
     let cachedShData = {};
 
+
+    function stripslashes(str){
+        return (str).replace(/\\(.)/mg, "$1");
+    }
+
     function replaceGalleryShortcodes( content ) {
         return content.replace( /\[sirv-gallery id=(\d*)\]/g, function( match, id ) {
             return html( match, id );
@@ -117,6 +122,7 @@ tinymce.PluginManager.add('sirvgallery', function( editor ) {
 
         for(var i = 0; i < count; i++){
             let url = img_data[i]['type'] == 'model' ? sirv_ajax_object.assets_path + '/model-plhldr.svg' : img_data[i]['url'] +'?'+ profile +'thumbnail=120&image';
+            url = stripslashes(url);
             images += '<img src="'+ url +'" alt="'+ img_data[i]['caption'] +'" />'
         }
         return `<div class="sirv-sc-view data-id-${id}" data-id="${id}" contenteditable=false >

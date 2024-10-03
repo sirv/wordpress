@@ -5,7 +5,7 @@ Tags: compress, optimize, image, resize, CDN
 Requires PHP: 5.6
 Requires at least: 3.0.1
 Tested up to: 6.6
-Stable tag: 7.2.0
+Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -238,6 +238,15 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 7.3.0 (2024-10-03) =
+* Improved plugin security.
+* Added sanitization of SVG files.
+* Fixed issue with missing Sirv data when product saved.
+* Added support for the Avada WooCommerce product block image gallery.
+* Added option to calculate WordPress Media library size.
+* Fixed caption for Sirv product galleries.
+* Small fixes and optimizations.
 
 = 7.2.8 =
 * Plugin tested with the latest WordPress version 6.6.
