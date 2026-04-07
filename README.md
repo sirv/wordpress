@@ -1,2 +1,2 @@
-# wordpress
-Sirv for Wordpress plugin
+# WordPress
+Official WordPress plugin for Sirv.
