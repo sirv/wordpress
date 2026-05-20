@@ -38,6 +38,8 @@ logs/
 # htaccess
 /.htaccess
 
+cliff.toml
+
 # All plugins
 #
 # Note: If you wish to whitelist plugins,
