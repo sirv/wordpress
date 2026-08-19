@@ -4,8 +4,8 @@ Donate link: https://sirv.com/
 Tags: compress, optimize, image, resize, CDN
 Requires PHP: 5.6
 Requires at least: 3.0.1
-Tested up to: 7.0
-Stable tag: 8.2.4
+Tested up to: 7.1
+Stable tag: 8.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -222,6 +222,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 18. To upload images to your Sirv library, go to the Media Library page within the Sirv sub-menu (in the left navigation column).
 
 == Changelog ==
+
+= 8.2.5 (2026-08-19) =
+* Tested with the latest WordPress version 7.1.
+* Added support for the Gutenberg editor in frame mode.
 
 = 8.2.4 (2026-06-10) =
 * Fixed WooCommerce main variation image not saving.

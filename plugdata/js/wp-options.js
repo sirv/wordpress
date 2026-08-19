@@ -2037,7 +2037,6 @@ jQuery(function ($) {
             }else{
                 //$('.sirv-custom-backcss-path-text-wrap').slideDown();
                 $('.sirv-custom-backcss-path-text-tr').show();
-                addInputCssPathPadding();
                 $('#sirv-custom-backcss-path-text').focus();
             }
         });
@@ -2442,26 +2441,6 @@ jQuery(function ($) {
             let $visible = $('.sirv-block-visible');
             $hide.addClass('sirv-block-visible').removeClass('sirv-block-hide');
             $visible.addClass('sirv-block-hide').removeClass('sirv-block-visible');
-        }
-
-
-        $(document).on('options_tab_changed', onOptionsTabChanged);
-        function onOptionsTabChanged(event){
-            if(!!event.detail.hash && event.detail.hash == 'cache'){
-                addInputCssPathPadding();
-            }
-        }
-
-
-        function addInputCssPathPadding(){
-            let $constPath = $('.sirv-input-const-text');
-            if(!!$constPath.length){
-                let $cssPathInput = $('#sirv-custom-backcss-path-text');
-                let constPathClientRect = $constPath[0].getBoundingClientRect();
-                let constPathWidth = constPathClientRect['width'];
-
-                $cssPathInput.css('padding-left', constPathWidth);
-            }
         }
 
 
@@ -3077,7 +3056,6 @@ jQuery(function ($) {
         getTabFromUrlHash();
         //setCorrectTime();
         //showResponsiveWarning();
-        addInputCssPathPadding();
         storePreventedSizesOnLoad();
         onAuthCheckChange();
         initializeWooCatItemsState();

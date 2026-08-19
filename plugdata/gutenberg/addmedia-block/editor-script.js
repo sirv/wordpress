@@ -1,4 +1,11 @@
 (function(wpElement, wpBlocks, wpComponents, wpEditor, wpi18n){
+    // create sirv modal placeholder inside frame
+    if(!document.querySelector('.sirv-modal')){
+        let sirvModalHost = document.createElement('div');
+        sirvModalHost.className = 'sirv-modal';
+        document.body.appendChild(sirvModalHost);
+    }
+
     let __ = wpi18n.__;
     let el = wpElement.createElement;
     //let Fragment = wpElement.Fragment;
@@ -330,9 +337,8 @@
                                 if(jQuery(liTarget).hasClass('sirv-is-selected')){
                                     jQuery(liTarget).removeClass('sirv-is-selected');
                                 }else{
-                                    jQuery.each(jQuery('.sirv-is-selected'), function( index, element ){
-                                        jQuery(this).removeClass('sirv-is-selected');
-                                    });
+                                    //search the block's own document, it is the editor iframe now
+                                    jQuery('.sirv-is-selected', liTarget.ownerDocument).removeClass('sirv-is-selected');
                                     liTarget.className  += ' sirv-is-selected';
                                 }
                             }}),
