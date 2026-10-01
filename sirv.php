@@ -4,7 +4,7 @@
  * Plugin Name: Sirv
  * Plugin URI: http://sirv.com
  * Description: Fully-automatic image optimization, next-gen formats (WebP), responsive resizing, lazy loading and CDN delivery. Every best-practice your website needs. Use "Add Sirv Media" button to embed images, galleries, zooms, 360 spins and streaming videos in posts / pages. Stunning media viewer for WooCommerce. Watermarks, text titles... every WordPress site deserves this plugin! <a href="admin.php?page=sirv/data/options.php">Settings</a>
- * Version:           8.2.5
+ * Version:           8.2.6
  * Requires PHP:      5.6
  * Requires at least: 3.0.1
  * Author:            sirv.com
@@ -15,7 +15,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 
-define('SIRV_PLUGIN_VERSION', '8.2.5');
+define('SIRV_PLUGIN_VERSION', '8.2.6');
 define('SIRV_PLUGIN_DIR', 'sirv');
 define('SIRV_PLUGIN_SUBDIR', 'plugdata');
 /// var/www/html/wordpress/wp-content/plugins/sirv/
@@ -5434,12 +5434,11 @@ function sirv_save_shortcode_in_db(){
 
   $data = $_POST['shortcode_data'];
   $data = sirv_santize_shorcode_data($data);
+  $data = sirv_filter_shortcode_columns($data);
 
   $data['images'] = serialize($data['images']);
   $data['shortcode_options'] = serialize($data['shortcode_options']);
-  $data['timestamp'] = date("Y-m-d H:i:s");
-
-  unset($data['isAltCaption']);
+  $data['timestamp'] = gmdate("Y-m-d H:i:s");
 
   $wpdb->insert($table_name, $data);
 
@@ -5474,6 +5473,43 @@ function sirv_santize_shorcode_data($data){
 }
 
 
+//keys of shortcode_data become SQL column names in $wpdb->insert/update, so only known columns are allowed
+function sirv_filter_shortcode_columns($data){
+  $allowed = array(
+    'width', 'thumbs_height', 'gallery_styles', 'align', 'profile',
+    'link_image', 'show_caption', 'use_as_gallery', 'use_sirv_zoom',
+    'images', 'shortcode_options',
+  );
+
+  return array_intersect_key($data, array_flip($allowed));
+}
+
+
+//unserialize shortcode columns without instantiating PHP objects
+function sirv_safe_unserialize($value){
+  if (!is_string($value)) {
+    return $value;
+  }
+
+  $trimmed = trim($value);
+  if (!preg_match('/^(?:N;|[abdisOC]:)/', $trimmed)) {
+    return $value;
+  }
+
+  if (PHP_VERSION_ID < 70000) {
+    //PHP 5.6 has no allowed_classes option: refuse any serialized object
+    if (preg_match('/[OC]:\d+:"/', $trimmed)) {
+      return $value;
+    }
+    $result = @unserialize($trimmed);
+  } else {
+    $result = @unserialize($trimmed, array('allowed_classes' => false));
+  }
+
+  return ($result === false && $trimmed !== 'b:0;') ? $value : $result;
+}
+
+
 //use ajax to get data from DB by id
 add_action('wp_ajax_sirv_get_row_by_id', 'sirv_get_row_by_id');
 
@@ -5499,8 +5535,8 @@ function sirv_get_row_by_id(){
 
   $row =  $wpdb->get_row("SELECT * FROM $table_name WHERE id = $id", ARRAY_A);
 
-  $row['images'] = unserialize($row['images']);
-  $row['shortcode_options'] = unserialize($row['shortcode_options']);
+  $row['images'] = sirv_safe_unserialize($row['images']);
+  $row['shortcode_options'] = sirv_safe_unserialize($row['shortcode_options']);
 
   echo json_encode($row);
 
@@ -5552,8 +5588,8 @@ function sirv_get_shortcodes_data(){
             ", ARRAY_A);
 
   foreach ($shortcodes as $index => $shortcode) {
-    $shortcodes[$index]['images'] = unserialize($shortcode['images']);
-    $shortcodes[$index]['shortcode_options'] = unserialize($shortcode['shortcode_options']);
+    $shortcodes[$index]['images'] = sirv_safe_unserialize($shortcode['images']);
+    $shortcodes[$index]['shortcode_options'] = sirv_safe_unserialize($shortcode['shortcode_options']);
   }
 
   $tmp_arr = array('count' => $sh_count['count'], 'shortcodes' => $shortcodes);
@@ -5668,11 +5704,10 @@ function sirv_update_sc(){
   $id = intval($_POST['row_id']);
   $data = $_POST['shortcode_data'];
   $data = sirv_santize_shorcode_data($data);
+  $data = sirv_filter_shortcode_columns($data);
 
   $data['images'] = serialize($data['images']);
   $data['shortcode_options'] = serialize($data['shortcode_options']);
-
-  unset($data['isAltCaption']);
 
   $row =  $wpdb->update($table_name, $data, array('ID' => $id));
 

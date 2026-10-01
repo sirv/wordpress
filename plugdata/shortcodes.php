@@ -19,8 +19,8 @@ function sirv_gallery($atts){
 
     if (empty($row)) return;
 
-    $items_data = unserialize($row['images']);
-    $shortcode_options = unserialize($row['shortcode_options']);
+    $items_data = sirv_safe_unserialize($row['images']);
+    $shortcode_options = sirv_safe_unserialize($row['shortcode_options']);
 
     if(empty($shortcode_options['global_options'])) $shortcode_options['global_options'] = array();
     if(empty($shortcode_options['spin_options'])) $shortcode_options['spin_options'] = array();
